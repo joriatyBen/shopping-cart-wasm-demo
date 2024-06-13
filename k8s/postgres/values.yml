@@ -1,0 +1,21 @@
+global:
+    postgresql:
+        auth:
+            username: "myuser"
+            password: "p05tgr3$"
+            database: "products"
+
+primary:
+    initdb:
+    initdb:
+        scripts:
+            00_init_extensions.sql: |
+                CREATE SCHEMA IF NOT EXISTS products;
+audit:
+  logHostname: true
+  logConnections: true
+  logDisconnections: true
+
+metrics:
+    serviceMonitor:
+        enabled: true
