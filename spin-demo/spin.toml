@@ -19,3 +19,15 @@ allowed_outbound_hosts = ["postgres://postgres-postgresql.postgres:5432"]
 [component.spin-demo.build]
 command = "cargo build --target wasm32-wasi --release"
 watch = ["src/**/*.rs", "Cargo.toml"]
+
+[[trigger.http]]
+route = "/carts/..."
+component = "carts"
+
+[component.carts]
+source = "carts/target/wasm32-wasi/release/carts.wasm"
+allowed_outbound_hosts = []
+[component.carts.build]
+command = "cargo build --target wasm32-wasi --release"
+workdir = "carts"
+watch = ["src/**/*.rs", "Cargo.toml"]
