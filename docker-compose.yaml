@@ -1,0 +1,20 @@
+version: '3'
+services:
+  postgres:
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=p05tgr3$
+      - POSTGRES_DB=products
+  migrate:
+    image: liquibase
+    volumes:
+      - ./compose/:/files/
+    entrypoint:
+      # - cat 
+      # - /files/migration.yaml
+      - sh
+      - -c
+      - "cp /files/migration.yaml .  && liquibase update --url jdbc:postgresql://postgres:5432/products --username myuser --password p05tgr3$ --changelog-file migration.yaml"

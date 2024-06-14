@@ -1,0 +1,222 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-schema
+      author: "specki"
+      changes:
+        - sql:
+            comment: 
+            dbms: 
+            endDelimiter: ;
+            splitStatements: true
+            sql: "CREATE SCHEMA IF NOT EXISTS products"
+            stripComments: false
+  - changeSet:
+      id: create-products-table
+      author: "joriatyBen"
+      changes:
+        - createTable:
+            catalogName: products
+            columns:
+              - column:
+                  name: id
+                  type: int
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: article_number
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: image_source
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: quantity
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: sellers_price
+                  type: int
+                  constraints:
+                    nullable: false
+            schemaName: products
+            tableName: products-details
+  - changeSet:
+      id: insert-products-table
+      author: "joriatyBen"
+      changes:
+        - insert:
+            catalogName: products
+            columns:
+              - column:
+                  name: article_number
+                  value: 1
+              - column:
+                  name: name
+                  value: Apple
+              - column:
+                  name: quantity
+                  value: 100
+              - column:
+                  name: sellers_price
+                  value: 10
+            schemaName: products
+            tableName: products-details
+        - insert:
+            catalogName: products
+            columns:
+              - column:
+                  name: article_number
+                  value: 2
+              - column:
+                  name: name
+                  value: Orange
+              - column:
+                  name: quantity
+                  value: 75
+              - column:
+                  name: sellers_price
+                  value: 11
+            schemaName: products
+            tableName: products-details
+        - insert:
+            catalogName: products
+            columns:
+              - column:
+                  name: article_number
+                  value: 3
+              - column:
+                  name: name
+                  value: Grapes
+              - column:
+                  name: quantity
+                  value: 50
+              - column:
+                  name: sellers_price
+                  value: 12
+            schemaName: products
+            tableName: products-details
+  - changeSet:
+      id: create-customers-table
+      author: "joriatyBen"
+      changes:
+        - createTable:
+            catalogName: customers
+            columns:
+              - column:
+                  name: id
+                  type: int
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: email
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: phone
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: address
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: city
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: pin
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_ordered
+                  type: datetime
+                  constraints:
+                    nullable: true
+            schemaName: products
+            tableName: customers
+  - changeSet:
+      id: addUniqueConstraint-customers
+      author: "joriatyBen"
+      changes:
+        - addUniqueConstraint:
+            catalogName: customers
+            columnNames: name, email
+            constraintName: unique_name_email
+            schemaName: products
+            tableName: customers
+            validate: true
+  - changeSet:
+      id: create-orders-table
+      author: "joriatyBen"
+      changes:
+        - createTable:
+            catalogName: orders
+            columns:
+              - column:
+                  name: id
+                  type: int
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: timestamp_order_request
+                  type: datetime
+                  constraints:
+                    nullable: true
+              - column:
+                  name: product_sum
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: total_order
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: customer_id
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: order_state
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+            schemaName: products
+            tableName: orders
+  - changeSet:
+      id: add-foreign-key-to-orders
+      author: "joriatyBen"
+      changes:
+        - addForeignKeyConstraint:
+            baseTableCatalogName: products
+            baseTableSchemaName: products
+            baseTableName: orders
+            baseColumnNames: customer_id
+            constraintName: fk_customers_id
+            referencedTableCatalogName: products
+            referencedTableSchemaName: products
+            referencedTableName: customers
+            referencedColumnNames: id
