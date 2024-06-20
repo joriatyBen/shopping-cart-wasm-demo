@@ -130,6 +130,7 @@ fn handle_route_cart_items(cart_id: &str, req: Request) -> anyhow::Result<Respon
         Method::Get => get_cart_items(cart_id),
         Method::Post => post_cart_items(cart_id, req),
         Method::Patch => patch_cart_items(cart_id, req),
+        Method::Delete => delete_cart_items(cart_id),
         _ => Ok(Response::builder().status(400).build()),
     }
 }
@@ -245,11 +246,39 @@ fn patch_cart_items(cart_id: u32, req: Request) -> anyhow::Result<Response> {
         .build())
 }
 
+fn delete_cart_items(cart_id: u32) -> anyhow::Result<Response> {
+    let exec_result = open_connection().execute(
+        "DELETE FROM cart.cart_items WHERE cart_id = $1 ",
+        &vec![ParameterValue::Int32(cart_id as i32)],
+    );
+
+    if exec_result.is_err() {
+        return Ok(Response::builder()
+            .status(500)
+            .body(exec_result.unwrap_err().to_string())
+            .build());
+    }
+
+    Ok(Response::builder().status(200).build())
+}
+
 fn delete_cart_item(cart_id: u32, item_id: u32) -> anyhow::Result<Response> {
-    Ok(Response::builder()
-        .status(200)
-        .body(format!("Delete cart={} item={}", cart_id, item_id))
-        .build())
+    let exec_result = open_connection().execute(
+        "DELETE FROM cart.cart_items WHERE cart_id = $1 AND item_id = $2",
+        &vec![
+            ParameterValue::Int32(cart_id as i32),
+            ParameterValue::Int32(item_id as i32),
+        ],
+    );
+
+    if exec_result.is_err() {
+        return Ok(Response::builder()
+            .status(500)
+            .body(exec_result.unwrap_err().to_string())
+            .build());
+    }
+
+    Ok(Response::builder().status(200).build())
 }
 
 fn parse_json<'a, T: Deserialize<'a>>(json: &'a [u8]) -> anyhow::Result<T> {
