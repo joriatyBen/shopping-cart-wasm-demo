@@ -190,13 +190,7 @@ fn get_cart_items(cart_id: u32) -> anyhow::Result<Response> {
     let items = rowset
         .rows
         .iter()
-        .map(|row| {
-            return CartItem {
-                id: db_value_as_int(&row[0]).unwrap() as u32,
-                quantity: db_value_as_int(&row[1]).unwrap() as u32,
-                price: db_value_as_float(&row[2]).unwrap(),
-            };
-        })
+        .map(cart_item_from_row)
         .collect::<Vec<CartItem>>();
 
     Ok(Response::builder()
@@ -239,10 +233,56 @@ fn patch_cart_items(cart_id: u32, req: Request) -> anyhow::Result<Response> {
     if !patch.is_ok() {
         return response_bad_request(patch.unwrap_err());
     }
+    let patch = patch.unwrap();
+
+    let connection = open_connection();
+
+    let rowset = connection.query(
+        "SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1 AND item_id = $2",
+        &vec![
+            ParameterValue::Int32(cart_id as i32),
+            ParameterValue::Int32(patch.id as i32),
+        ],
+    )?;
+
+    if rowset.rows.len() == 0 {
+        return Ok(Response::builder()
+            .status(404)
+            .body("id not found".to_owned())
+            .build());
+    }
+
+    let mut item = cart_item_from_row(&rowset.rows[0]);
+
+    if patch.quantity.is_some() {
+        item.quantity = patch.quantity.unwrap();
+    }
+
+    if (patch.price.is_some()) {
+        item.price = patch.price.unwrap();
+    }
+
+    let exec_result = connection.execute(
+        "UPDATE cart.cart_items SET quantity = $3, price = $4 WHERE cart_id = $1 AND item_id = $2 ",
+        &vec![
+            ParameterValue::Int32(cart_id as i32),
+            ParameterValue::Int32(item.id as i32),
+            ParameterValue::Int32(item.quantity as i32),
+            ParameterValue::Floating64(item.price),
+        ],
+    );
+
+    if (exec_result.is_err()) {
+        return Ok(Response::builder()
+            .status(500)
+            .body(exec_result.unwrap_err().to_string())
+            .build());
+    }
 
     Ok(Response::builder()
         .status(200)
-        .body(format!("Patch cart={} item {:?}", cart_id, patch))
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&item).unwrap())
         .build())
 }
 
@@ -316,5 +356,13 @@ fn db_value_as_float(value: &DbValue) -> anyhow::Result<f64> {
         DbValue::Floating32(x) => Ok(x.clone() as f64),
         DbValue::Floating64(x) => Ok(x.clone()),
         _ => Result::Err(anyhow::Error::msg("not a float")),
+    }
+}
+
+fn cart_item_from_row(row: &Vec<DbValue>) -> CartItem {
+    CartItem {
+        id: db_value_as_int(&row[0]).unwrap() as u32,
+        quantity: db_value_as_int(&row[1]).unwrap() as u32,
+        price: db_value_as_float(&row[2]).unwrap(),
     }
 }
