@@ -213,7 +213,7 @@ fn post_cart_items(cart_id: u32, req: Request) -> anyhow::Result<Response> {
     }
     let item = item.unwrap();
 
-    let sql_result = open_connection().execute(
+    let insert_result = open_connection().execute(
         "INSERT INTO cart.cart_items VALUES($1, $2, $3, $4);",
         &vec![
             ParameterValue::Int32(cart_id as i32),
@@ -223,7 +223,7 @@ fn post_cart_items(cart_id: u32, req: Request) -> anyhow::Result<Response> {
         ],
     );
 
-    if sql_result.is_err() {
+    if insert_result.is_err() {
         return response_bad_request(anyhow::Error::msg("duplicate item"));
     }
 
