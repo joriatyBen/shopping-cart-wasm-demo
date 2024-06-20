@@ -2,14 +2,17 @@ use std::any;
 
 use serde::Deserialize;
 use spin_sdk::http::{Method, Request, Response};
-use spin_sdk::http_component;
+use spin_sdk::pg::ParameterValue;
+use spin_sdk::{http_component, pg};
 use url::Url;
 use urlpattern::{UrlPattern, UrlPatternInit};
 
-#[derive(serde::Deserialize, Debug)]
+const DB_URL_ENV: &str = "DB_URL";
+
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
 struct CartItem {
     #[serde(rename = "itemId")]
-    id: String,
+    id: u32,
     quantity: u32,
     price: f64,
 }
@@ -17,7 +20,7 @@ struct CartItem {
 #[derive(serde::Deserialize, Debug)]
 struct CartItemPatch {
     #[serde(rename = "itemId")]
-    id: String,
+    id: u32,
     quantity: Option<u32>,
     price: Option<f64>,
 }
@@ -167,9 +170,27 @@ fn post_cart_items(cart_id: u32, req: Request) -> anyhow::Result<Response> {
     }
     let item = item.unwrap();
 
+    let address = std::env::var(DB_URL_ENV)?;
+    let conn = pg::Connection::open(&address)?;
+
+    let sql_result = conn.execute(
+        "INSERT INTO cart.cart_items VALUES($1, $2, $3, $4);",
+        &vec![
+            ParameterValue::Int32(cart_id as i32),
+            ParameterValue::Int32(item.id as i32),
+            ParameterValue::Int32(item.quantity as i32),
+            ParameterValue::Floating64(item.price),
+        ],
+    );
+
+    if sql_result.is_err() {
+        return response_bad_request(anyhow::Error::msg("duplicate item"));
+    }
+
     Ok(Response::builder()
         .status(200)
-        .body(format!("Add cart={} item {:?}", cart_id, item))
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&item).unwrap())
         .build())
 }
 

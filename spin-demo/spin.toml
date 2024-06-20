@@ -6,16 +6,21 @@ version = "0.3.0"
 authors = ["benjamin.bajorat <benjamin.bajorat@mayflower.de>"]
 description = ""
 
+# --------------
+
 [[trigger.http]]
 route = "/checkout"
 component = "spin-demo"
 
 [component.spin-demo]
+source = "target/wasm32-wasi/release/spin_demo.wasm"
+
 environment = { DB_URL = "host=postgres-postgresql.postgres user=myuser password=p05tgr3$ dbname=products" }
 #environment = { DB_URL = "host=localhost user=myuser password=p05tgr3$ dbname=products" }
-source = "target/wasm32-wasi/release/spin_demo.wasm"
+
 allowed_outbound_hosts = ["postgres://postgres-postgresql.postgres:5432"]
 #allowed_outbound_hosts = ["postgres://localhost:5432"]
+
 [component.spin-demo.build]
 command = "cargo build --target wasm32-wasi --release"
 watch = ["src/**/*.rs", "Cargo.toml"]
@@ -24,9 +29,17 @@ watch = ["src/**/*.rs", "Cargo.toml"]
 route = "/carts/..."
 component = "carts"
 
+# --------------
+
 [component.carts]
 source = "carts/target/wasm32-wasi/release/carts.wasm"
-allowed_outbound_hosts = []
+
+#environment = { DB_URL = "host=postgres-postgresql.postgres user=myuser password=p05tgr3$ dbname=products" }
+environment = { DB_URL = "host=localhost user=myuser password=p05tgr3$ dbname=products" }
+
+#allowed_outbound_hosts = ["postgres://postgres-postgresql.postgres:5432"]
+allowed_outbound_hosts = ["postgres://localhost:5432"]
+
 [component.carts.build]
 command = "cargo build --target wasm32-wasi --release"
 workdir = "carts"

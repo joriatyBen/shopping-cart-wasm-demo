@@ -17,4 +17,4 @@ services:
       # - /files/migration.yaml
       - sh
       - -c
-      - "cp /files/migration.yaml .  && liquibase update --url jdbc:postgresql://postgres:5432/products --username myuser --password p05tgr3$ --changelog-file migration.yaml"
+      - "cp /files/migration.yaml .  && sleep 1 && liquibase update --url jdbc:postgresql://postgres:5432/products --username myuser --password p05tgr3$ --changelog-file migration.yaml"

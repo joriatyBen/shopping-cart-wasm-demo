@@ -1,6 +1,43 @@
 databaseChangeLog:
   - changeSet:
-      id: create-schema
+      id: create-schema-cart
+      author: "specki"
+      changes:
+        - sql:
+            comment: 
+            dbms: 
+            endDelimiter: ;
+            splitStatements: true
+            sql: "CREATE SCHEMA IF NOT EXISTS cart"
+            stripComments: false
+  - changeSet:
+      id: create-cart-item-table
+      author: "specki"
+      changes:
+        - createTable:
+            catalogName: cart
+            schemaName: cart
+            tableName: cart_items
+            columns:
+              - column:
+                  name: cart_id
+                  type: int
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: item_id
+                  type: int
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: quantity
+                  type: int
+              - column:
+                  name: price
+                  type: float
+
+  - changeSet:
+      id: create-schema-products
       author: "specki"
       changes:
         - sql:
