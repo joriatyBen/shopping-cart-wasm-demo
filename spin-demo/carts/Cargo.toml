@@ -11,6 +11,7 @@ crate-type = ["cdylib"]
 [dependencies]
 anyhow = "1"
 spin-sdk = "3.0.1"
+url = "2.5.2"
 urlpattern = "^0.2.0"
 
 [workspace]
