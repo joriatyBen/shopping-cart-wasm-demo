@@ -267,32 +267,32 @@ fn patch_cart_items(cart_id: u32, req: Request) -> anyhow::Result<Response> {
 }
 
 fn delete_cart_items(cart_id: u32) -> anyhow::Result<Response> {
-    let exec_result = open_connection().execute(
-        "DELETE FROM cart.cart_items WHERE cart_id = $1 ",
+    let query_result = open_connection().query(
+        "DELETE FROM cart.cart_items WHERE cart_id = $1 RETURNING *",
         &vec![ParameterValue::Int32(cart_id as i32)],
-    );
+    )?;
 
-    if exec_result.is_err() {
-        return response_bad_request(exec_result.map_err(anyhow::Error::msg).unwrap_err());
+    if query_result.rows.len() == 0 {
+        response_not_found()
+    } else {
+        response_empty()
     }
-
-    Ok(Response::builder().status(200).build())
 }
 
 fn delete_cart_item(cart_id: u32, item_id: u32) -> anyhow::Result<Response> {
-    let exec_result = open_connection().execute(
-        "DELETE FROM cart.cart_items WHERE cart_id = $1 AND item_id = $2",
+    let query_result = open_connection().query(
+        "DELETE FROM cart.cart_items WHERE cart_id = $1 AND item_id = $2 RETURNING *",
         &vec![
             ParameterValue::Int32(cart_id as i32),
             ParameterValue::Int32(item_id as i32),
         ],
-    );
+    )?;
 
-    if exec_result.is_err() {
-        return response_bad_request(exec_result.map_err(anyhow::Error::msg).unwrap_err());
+    if query_result.rows.len() == 0 {
+        response_not_found()
+    } else {
+        response_empty()
     }
-
-    response_empty()
 }
 
 fn parse_json<'a, T: Deserialize<'a>>(json: &'a [u8]) -> anyhow::Result<T> {
