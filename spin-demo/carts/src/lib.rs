@@ -1,3 +1,6 @@
+use std::result;
+use std::time::SystemTime;
+
 use serde::{Deserialize, Serialize};
 use spin_sdk::http::{Method, Request, Response};
 use spin_sdk::pg::{Connection, DbValue, ParameterValue};
@@ -31,6 +34,23 @@ struct GetCartResponse {
 
 #[http_component]
 fn handle(req: Request) -> anyhow::Result<Response> {
+    let now = SystemTime::now();
+    let res = do_handle(req);
+
+    if res.is_ok() {
+        let mut res = res.unwrap();
+        res.set_header(
+            "X-Processing-Time-Milliseconds",
+            format!("{}", now.elapsed()?.as_millis()),
+        );
+
+        Ok(res)
+    } else {
+        res
+    }
+}
+
+fn do_handle(req: Request) -> anyhow::Result<Response> {
     let pattern_cart = build_pattern("/carts/:cartId");
     let pattern_cart_items = build_pattern("/carts/:cartId/items");
     let pattern_cart_item = build_pattern("/carts/:cartId/items/:itemId");
