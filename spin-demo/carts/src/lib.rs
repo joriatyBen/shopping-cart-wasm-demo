@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use spin_sdk::http::{Method, Request, Response};
 use spin_sdk::pg::{Connection, DbValue, ParameterValue};
 use spin_sdk::{http_component, pg};
@@ -161,16 +161,9 @@ fn get_cart(cart_id: u32) -> anyhow::Result<Response> {
     )?;
 
     if rowset.rows.len() > 0 {
-        Ok(Response::builder()
-            .status(200)
-            .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&GetCartResponse { id: cart_id })?)
-            .build())
+        response_json(&GetCartResponse { id: cart_id })
     } else {
-        Ok(Response::builder()
-            .status(404)
-            .body("id not found".to_owned())
-            .build())
+        response_not_found()
     }
 }
 
@@ -181,10 +174,7 @@ fn get_cart_items(cart_id: u32) -> anyhow::Result<Response> {
     )?;
 
     if rowset.rows.len() == 0 {
-        return Ok(Response::builder()
-            .status(404)
-            .body("id not found".to_owned())
-            .build());
+        return response_not_found();
     }
 
     let items = rowset
@@ -193,11 +183,7 @@ fn get_cart_items(cart_id: u32) -> anyhow::Result<Response> {
         .map(cart_item_from_row)
         .collect::<Vec<CartItem>>();
 
-    Ok(Response::builder()
-        .status(200)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&items).unwrap())
-        .build())
+    response_json(&items)
 }
 
 fn post_cart_items(cart_id: u32, req: Request) -> anyhow::Result<Response> {
@@ -221,11 +207,7 @@ fn post_cart_items(cart_id: u32, req: Request) -> anyhow::Result<Response> {
         return response_bad_request(anyhow::Error::msg("duplicate item"));
     }
 
-    Ok(Response::builder()
-        .status(200)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&item).unwrap())
-        .build())
+    response_json(&item)
 }
 
 fn patch_cart_items(cart_id: u32, req: Request) -> anyhow::Result<Response> {
@@ -235,7 +217,39 @@ fn patch_cart_items(cart_id: u32, req: Request) -> anyhow::Result<Response> {
     }
     let patch = patch.unwrap();
 
+    let mut mutations = Vec::<String>::with_capacity(2);
+    let mut query_parameters = vec![
+        ParameterValue::Int32(cart_id as i32),
+        ParameterValue::Int32(patch.id as i32),
+    ];
+
+    if patch.quantity.is_some() {
+        query_parameters.push(ParameterValue::Int32(patch.quantity.unwrap() as i32));
+        mutations.push(format!("quantity = ${}", query_parameters.len()));
+    }
+
+    if patch.price.is_some() {
+        query_parameters.push(ParameterValue::Floating64(patch.price.unwrap() as f64));
+        mutations.push(format!("price = ${}", query_parameters.len()));
+    }
+
     let connection = open_connection();
+
+    if mutations.len() > 0 {
+        let exec_result = connection.execute(
+            &format!(
+                "UPDATE cart.cart_items SET {} WHERE cart_id = $1 AND item_id = $2",
+                mutations.join(", ")
+            ),
+            &query_parameters,
+        );
+
+        if exec_result.is_err() {
+            return response_internal_server_error(
+                exec_result.map_err(anyhow::Error::msg).unwrap_err(),
+            );
+        }
+    }
 
     let rowset = connection.query(
         "SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1 AND item_id = $2",
@@ -246,44 +260,10 @@ fn patch_cart_items(cart_id: u32, req: Request) -> anyhow::Result<Response> {
     )?;
 
     if rowset.rows.len() == 0 {
-        return Ok(Response::builder()
-            .status(404)
-            .body("id not found".to_owned())
-            .build());
+        return response_not_found();
     }
 
-    let mut item = cart_item_from_row(&rowset.rows[0]);
-
-    if patch.quantity.is_some() {
-        item.quantity = patch.quantity.unwrap();
-    }
-
-    if (patch.price.is_some()) {
-        item.price = patch.price.unwrap();
-    }
-
-    let exec_result = connection.execute(
-        "UPDATE cart.cart_items SET quantity = $3, price = $4 WHERE cart_id = $1 AND item_id = $2 ",
-        &vec![
-            ParameterValue::Int32(cart_id as i32),
-            ParameterValue::Int32(item.id as i32),
-            ParameterValue::Int32(item.quantity as i32),
-            ParameterValue::Floating64(item.price),
-        ],
-    );
-
-    if (exec_result.is_err()) {
-        return Ok(Response::builder()
-            .status(500)
-            .body(exec_result.unwrap_err().to_string())
-            .build());
-    }
-
-    Ok(Response::builder()
-        .status(200)
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&item).unwrap())
-        .build())
+    response_json(&cart_item_from_row(&rowset.rows[0]))
 }
 
 fn delete_cart_items(cart_id: u32) -> anyhow::Result<Response> {
@@ -293,10 +273,7 @@ fn delete_cart_items(cart_id: u32) -> anyhow::Result<Response> {
     );
 
     if exec_result.is_err() {
-        return Ok(Response::builder()
-            .status(500)
-            .body(exec_result.unwrap_err().to_string())
-            .build());
+        return response_bad_request(exec_result.map_err(anyhow::Error::msg).unwrap_err());
     }
 
     Ok(Response::builder().status(200).build())
@@ -312,13 +289,10 @@ fn delete_cart_item(cart_id: u32, item_id: u32) -> anyhow::Result<Response> {
     );
 
     if exec_result.is_err() {
-        return Ok(Response::builder()
-            .status(500)
-            .body(exec_result.unwrap_err().to_string())
-            .build());
+        return response_bad_request(exec_result.map_err(anyhow::Error::msg).unwrap_err());
     }
 
-    Ok(Response::builder().status(200).build())
+    response_empty()
 }
 
 fn parse_json<'a, T: Deserialize<'a>>(json: &'a [u8]) -> anyhow::Result<T> {
@@ -329,6 +303,29 @@ fn parse_json<'a, T: Deserialize<'a>>(json: &'a [u8]) -> anyhow::Result<T> {
 
 fn response_bad_request(e: anyhow::Error) -> anyhow::Result<Response> {
     Ok(Response::builder().status(400).body(e.to_string()).build())
+}
+
+fn response_internal_server_error(e: anyhow::Error) -> anyhow::Result<Response> {
+    Ok(Response::builder().status(500).body(e.to_string()).build())
+}
+
+fn response_not_found() -> anyhow::Result<Response> {
+    Ok(Response::builder()
+        .status(404)
+        .body("not found".to_owned())
+        .build())
+}
+
+fn response_json<T: Serialize>(object: &T) -> anyhow::Result<Response> {
+    Ok(Response::builder()
+        .status(200)
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&object).unwrap())
+        .build())
+}
+
+fn response_empty() -> anyhow::Result<Response> {
+    Ok(Response::builder().status(200).build())
 }
 
 fn open_connection() -> Connection {
