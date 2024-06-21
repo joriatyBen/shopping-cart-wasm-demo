@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	spinhttp "github.com/fermyon/spin/sdk/go/v2/http"
 	"github.com/julienschmidt/httprouter"
@@ -10,13 +11,14 @@ import (
 func Dispatch(w http.ResponseWriter, req *http.Request) {
 
 	router := httprouter.New()
+	controller := Controller{Start: time.Now().UnixMilli()}
 
-	router.GET("/carts-go/:cartId", HandleGetCarts)
-	router.GET("/carts-go/:cartId/items", HandleGetCartsItems)
-	router.POST("/carts-go/:cartId/items", HandlePostCartsItems)
-	router.PATCH("/carts-go/:cartId/items", HandlePatchCartsItems)
-	router.DELETE("/carts-go/:cartId/items", HandleDeleteCartsItems)
-	router.DELETE("/carts-go/:cartId/item/:itemId", HandleDeleteCartsItem)
+	router.GET("/carts-go/:cartId", controller.HandleGetCarts)
+	router.GET("/carts-go/:cartId/items", controller.HandleGetCartsItems)
+	router.POST("/carts-go/:cartId/items", controller.HandlePostCartsItems)
+	router.PATCH("/carts-go/:cartId/items", controller.HandlePatchCartsItems)
+	router.DELETE("/carts-go/:cartId/items", controller.HandleDeleteCartsItems)
+	router.DELETE("/carts-go/:cartId/item/:itemId", controller.HandleDeleteCartsItem)
 
 	router.ServeHTTP(w, req)
 }

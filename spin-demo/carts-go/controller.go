@@ -16,6 +16,16 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+type Controller struct {
+	Start int64
+
+	cartId int
+	itemId int
+	body   []byte
+
+	err error
+}
+
 type CartItem struct {
 	Id       uint    `json:"itemId"`
 	Quantity uint    `json:"quantity"`
@@ -32,36 +42,32 @@ type GetCartsResponse struct {
 	Id uint `json:"customerId"`
 }
 
-func HandleGetCarts(w http.ResponseWriter, _ *http.Request, params httprouter.Params) {
-	now := time.Now().UnixMilli()
-
-	cartId, err := strconv.Atoi(params.ByName("cartId"))
-	if err != nil {
-		responseBadRequest(now, w, err)
+func (c *Controller) HandleGetCarts(w http.ResponseWriter, _ *http.Request, params httprouter.Params) {
+	c.fetchCartId(params)
+	if c.err != nil {
+		c.responseBadRequest(w, c.err)
 		return
 	}
 
-	rows, err := connectDb().Query("SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1", int32(cartId))
+	rows, err := connectDb().Query("SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1", int32(c.cartId))
 	assert(err)
 	defer rows.Close()
 
 	if rows.Next() {
-		responseJson(now, w, GetCartsResponse{uint(cartId)})
+		c.responseJson(w, GetCartsResponse{uint(c.cartId)})
 	} else {
-		responseNotFound(now, w)
+		c.responseNotFound(w)
 	}
 }
 
-func HandleGetCartsItems(w http.ResponseWriter, _ *http.Request, params httprouter.Params) {
-	now := time.Now().UnixMilli()
-
-	cartId, err := strconv.Atoi(params.ByName("cartId"))
-	if err != nil {
-		responseBadRequest(now, w, err)
+func (c *Controller) HandleGetCartsItems(w http.ResponseWriter, _ *http.Request, params httprouter.Params) {
+	c.fetchCartId(params)
+	if c.err != nil {
+		c.responseBadRequest(w, c.err)
 		return
 	}
 
-	rows, err := connectDb().Query("SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1", int32(cartId))
+	rows, err := connectDb().Query("SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1", int32(c.cartId))
 	assert(err)
 	defer rows.Close()
 
@@ -74,35 +80,28 @@ func HandleGetCartsItems(w http.ResponseWriter, _ *http.Request, params httprout
 	}
 
 	if len(items) == 0 {
-		responseNotFound(now, w)
+		c.responseNotFound(w)
 	} else {
-		responseJson(now, w, items)
+		c.responseJson(w, items)
 	}
 }
 
-func HandlePostCartsItems(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	now := time.Now().UnixMilli()
-
-	cartId, err := strconv.Atoi(params.ByName("cartId"))
-	if err != nil {
-		responseBadRequest(now, w, err)
-		return
-	}
-
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		responseBadRequest(now, w, err)
+func (c *Controller) HandlePostCartsItems(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+	c.fetchCartId(params)
+	c.fetchBody(req)
+	if c.err != nil {
+		c.responseBadRequest(w, c.err)
 		return
 	}
 
 	item := CartItem{}
-	if err = json.Unmarshal(body, &item); err != nil {
-		responseBadRequest(now, w, err)
+	if err := json.Unmarshal(c.body, &item); err != nil {
+		c.responseBadRequest(w, err)
 		return
 	}
 
 	result, err := connectDb().Exec("INSERT INTO cart.cart_items VALUES($1, $2, $3, $4) ON CONFLICT DO NOTHING;",
-		int32(cartId),
+		int32(c.cartId),
 		int32(item.Id),
 		int32(item.Quantity),
 		item.Price,
@@ -113,35 +112,28 @@ func HandlePostCartsItems(w http.ResponseWriter, req *http.Request, params httpr
 	assert(err)
 
 	if rowsAffected == 0 {
-		responseBadRequest(now, w, errors.New("duplicate id"))
+		c.responseBadRequest(w, errors.New("duplicate id"))
 	} else {
-		responseJson(now, w, item)
+		c.responseJson(w, item)
 	}
 }
 
-func HandlePatchCartsItems(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	now := time.Now().UnixMilli()
-
-	cartId, err := strconv.Atoi(params.ByName("cartId"))
-	if err != nil {
-		responseBadRequest(now, w, err)
-		return
-	}
-
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		responseBadRequest(now, w, err)
+func (c *Controller) HandlePatchCartsItems(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+	c.fetchCartId(params)
+	c.fetchBody(req)
+	if c.err != nil {
+		c.responseBadRequest(w, c.err)
 		return
 	}
 
 	patch := CartItemPatch{}
-	if err = json.Unmarshal(body, &patch); err != nil {
-		responseBadRequest(now, w, err)
+	if err := json.Unmarshal(c.body, &patch); err != nil {
+		c.responseBadRequest(w, err)
 		return
 	}
 
 	mutations := make([]string, 0, 2)
-	parameters := []any{int32(cartId), int32(patch.Id)}
+	parameters := []any{int32(c.cartId), int32(patch.Id)}
 
 	if patch.Quantity != nil {
 		parameters = append(parameters, int32(*patch.Quantity))
@@ -154,14 +146,14 @@ func HandlePatchCartsItems(w http.ResponseWriter, req *http.Request, params http
 	}
 
 	connection := connectDb()
-	_, err = connection.Exec(fmt.Sprintf(
+	_, err := connection.Exec(fmt.Sprintf(
 		"UPDATE cart.cart_items SET %s WHERE cart_id = $1 AND item_id = $2", strings.Join(mutations, ", ")),
 		parameters...,
 	)
 	assert(err)
 
 	rows, err := connection.Query("SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1 AND item_id = $2",
-		int32(cartId),
+		int32(c.cartId),
 		int32(patch.Id),
 	)
 	assert(err)
@@ -171,60 +163,75 @@ func HandlePatchCartsItems(w http.ResponseWriter, req *http.Request, params http
 		item := CartItem{}
 		rows.Scan(&item.Id, &item.Quantity, &item.Price)
 
-		responseJson(now, w, item)
+		c.responseJson(w, item)
 	} else {
-		responseNotFound(now, w)
+		c.responseNotFound(w)
 	}
 }
 
-func HandleDeleteCartsItems(w http.ResponseWriter, _ *http.Request, params httprouter.Params) {
-	now := time.Now().UnixMilli()
-
-	cartId, err := strconv.Atoi(params.ByName("cartId"))
-	if err != nil {
-		responseBadRequest(now, w, err)
+func (c *Controller) HandleDeleteCartsItems(w http.ResponseWriter, _ *http.Request, params httprouter.Params) {
+	c.fetchCartId(params)
+	if c.err != nil {
+		c.responseBadRequest(w, c.err)
 		return
 	}
 
-	result, err := connectDb().Exec("DELETE FROM cart.cart_items WHERE cart_id = $1", int32(cartId))
+	result, err := connectDb().Exec("DELETE FROM cart.cart_items WHERE cart_id = $1", int32(c.cartId))
 	assert(err)
 
 	rowsAffected, err := result.RowsAffected()
 	assert(err)
 
 	if rowsAffected == 0 {
-		responseNotFound(now, w)
+		c.responseNotFound(w)
 	} else {
-		responseEmpty(now, w)
+		c.responseEmpty(w)
 	}
 }
 
-func HandleDeleteCartsItem(w http.ResponseWriter, _ *http.Request, params httprouter.Params) {
-	now := time.Now().UnixMilli()
-
-	cartId, err := strconv.Atoi(params.ByName("cartId"))
-	if err != nil {
-		responseBadRequest(now, w, err)
+func (c *Controller) HandleDeleteCartsItem(w http.ResponseWriter, _ *http.Request, params httprouter.Params) {
+	c.fetchCartId(params)
+	c.fetchItemId(params)
+	if c.err != nil {
+		c.responseBadRequest(w, c.err)
 		return
 	}
 
-	itemId, err := strconv.Atoi(params.ByName("itemId"))
-	if err != nil {
-		responseBadRequest(now, w, err)
-		return
-	}
-
-	result, err := connectDb().Exec("DELETE FROM cart.cart_items WHERE cart_id = $1 AND item_id = $2", int32(cartId), int32(itemId))
+	result, err := connectDb().Exec("DELETE FROM cart.cart_items WHERE cart_id = $1 AND item_id = $2", int32(c.cartId), int32(c.itemId))
 	assert(err)
 
 	rowsAffected, err := result.RowsAffected()
 	assert(err)
 
 	if rowsAffected == 0 {
-		responseNotFound(now, w)
+		c.responseNotFound(w)
 	} else {
-		responseEmpty(now, w)
+		c.responseEmpty(w)
 	}
+}
+
+func (c *Controller) fetchCartId(params httprouter.Params) {
+	if c.err != nil {
+		return
+	}
+
+	c.cartId, c.err = strconv.Atoi(params.ByName("cartId"))
+}
+
+func (c *Controller) fetchItemId(params httprouter.Params) {
+	if c.err != nil {
+		return
+	}
+
+	c.itemId, c.err = strconv.Atoi(params.ByName("itemId"))
+}
+
+func (c *Controller) fetchBody(req *http.Request) {
+	if c.err != nil {
+		return
+	}
+
+	c.body, c.err = io.ReadAll(req.Body)
 }
 
 func connectDb() *sql.DB {
@@ -238,26 +245,26 @@ func assert(e error) {
 	}
 }
 
-func addProcessingTimeHeader(start int64, w http.ResponseWriter) {
-	w.Header().Add("X-Processing-Time-Milliseconds", fmt.Sprintf("%v", time.Now().UnixMilli()-start))
+func (c *Controller) addProcessingTimeHeader(w http.ResponseWriter) {
+	w.Header().Add("X-Processing-Time-Milliseconds", fmt.Sprintf("%v", time.Now().UnixMilli()-c.Start))
 }
 
-func responseNotFound(start int64, w http.ResponseWriter) {
-	addProcessingTimeHeader(start, w)
+func (c *Controller) responseNotFound(w http.ResponseWriter) {
+	c.addProcessingTimeHeader(w)
 
 	w.WriteHeader(http.StatusNotFound)
 	w.Write([]byte("not found"))
 }
 
-func responseBadRequest(start int64, w http.ResponseWriter, err error) {
-	addProcessingTimeHeader(start, w)
+func (c *Controller) responseBadRequest(w http.ResponseWriter, err error) {
+	c.addProcessingTimeHeader(w)
 
 	w.WriteHeader(http.StatusBadRequest)
 	w.Write([]byte(err.Error()))
 }
 
-func responseJson(start int64, w http.ResponseWriter, data any) {
-	addProcessingTimeHeader(start, w)
+func (c *Controller) responseJson(w http.ResponseWriter, data any) {
+	c.addProcessingTimeHeader(w)
 
 	json, err := json.Marshal(data)
 	assert(err)
@@ -267,8 +274,8 @@ func responseJson(start int64, w http.ResponseWriter, data any) {
 	w.Write(json)
 }
 
-func responseEmpty(start int64, w http.ResponseWriter) {
-	addProcessingTimeHeader(start, w)
+func (c *Controller) responseEmpty(w http.ResponseWriter) {
+	c.addProcessingTimeHeader(w)
 
 	w.WriteHeader(http.StatusOK)
 }
