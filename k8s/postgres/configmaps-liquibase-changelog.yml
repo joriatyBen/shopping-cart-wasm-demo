@@ -46,7 +46,7 @@ data:
                       constraints:
                         nullable: false
                 schemaName: products
-                tableName: products-details
+                tableName: product_details
       - changeSet:
           id: insert-products-table
           author: "joriatyBen"
@@ -67,7 +67,7 @@ data:
                       name: sellers_price
                       value: 10
                 schemaName: products
-                tableName: products-details
+                tableName: product_details
             - insert:
                 catalogName: products
                 columns:
@@ -84,7 +84,7 @@ data:
                       name: sellers_price
                       value: 11
                 schemaName: products
-                tableName: products-details
+                tableName: product_details
             - insert:
                 catalogName: products
                 columns:
@@ -101,7 +101,7 @@ data:
                       name: sellers_price
                       value: 12
                 schemaName: products
-                tableName: products-details
+                tableName: product_details
       - changeSet:
           id: create-customers-table
           author: "joriatyBen"
@@ -164,11 +164,11 @@ data:
                 tableName: customers
                 validate: true
       - changeSet:
-          id: create-orders-table
+          id: create-order-items-table
           author: "joriatyBen"
           changes:
             - createTable:
-                catalogName: orders
+                catalogName: order_items
                 columns:
                   - column:
                       name: id
@@ -177,17 +177,52 @@ data:
                       constraints:
                         primaryKey: true
                   - column:
-                      name: timestamp_order_request
+                      name: order_id
+                      type: int
+                      constraints:
+                        nullable: false
+                  - column:
+                      name: product_id
+                      type: int
+                      constraints:
+                        nullable: false
+                  - column:
+                      name: order_quantity
+                      type: int
+                      constraints:
+                        nullable: false
+                  - column:
+                      name: timestamp_created
+                      type: datetime
+                      constraints:
+                        nullable: true
+                schemaName: products
+                tableName: order_items
+      - changeSet:
+          id: create-order-details-table
+          author: "joriatyBen"
+          changes:
+            - createTable:
+                catalogName: order_details
+                columns:
+                  - column:
+                      name: id
+                      type: int
+                      autoIncrement: true
+                      constraints:
+                        primaryKey: true
+                  - column:
+                      name: timestamp_created
                       type: datetime
                       constraints:
                         nullable: true
                   - column:
-                      name: product_sum
+                      name: total_products
                       type: varchar(255)
                       constraints:
                         nullable: false
                   - column:
-                      name: total_order
+                      name: total_price
                       type: int
                       constraints:
                         nullable: false
@@ -202,18 +237,32 @@ data:
                       constraints:
                         nullable: false
                 schemaName: products
-                tableName: orders
+                tableName: order_details
       - changeSet:
-          id: add-foreign-key-to-orders
+          id: add-foreign-key-to-order-details
           author: "joriatyBen"
           changes:
             - addForeignKeyConstraint:
                 baseTableCatalogName: products
                 baseTableSchemaName: products
-                baseTableName: orders
+                baseTableName: order_details
                 baseColumnNames: customer_id
                 constraintName: fk_customers_id
                 referencedTableCatalogName: products
                 referencedTableSchemaName: products
                 referencedTableName: customers
+                referencedColumnNames: id
+      - changeSet:
+          id: add-foreign-key-to-order-items
+          author: "joriatyBen"
+          changes:
+            - addForeignKeyConstraint:
+                baseTableCatalogName: products
+                baseTableSchemaName: products
+                baseTableName: order_items
+                baseColumnNames: order_id
+                constraintName: fk_order_id
+                referencedTableCatalogName: products
+                referencedTableSchemaName: products
+                referencedTableName: order_details
                 referencedColumnNames: id
