@@ -97,7 +97,7 @@ fn handle_order(
             current_order_state = OrderState::Canceled;
             println!("Insufficient stock for product: {:?}", article.name)
         } else {
-            let sql = format!("UPDATE products.\"products-details\" \
+            let sql = format!("UPDATE products.\"product_details\" \
             SET quantity = '{}' WHERE name = '{}'", current_quantity, article.name);
             conn.query(&sql, &[])?;
             println!("Updated product stock for product: {}", article.name);
@@ -109,7 +109,7 @@ fn handle_order(
 
     if current_order_state == OrderState::Processing {
         insert_customer_data(&conn, &order, start_time).expect("Customer data insert failed");
-        current_order_state = insert_order_data(&conn, &order, ordered_products, start_time).expect("Order data insert failed");
+        current_order_state = insert_order_detail_data(&conn, &order, ordered_products, start_time).expect("Order data insert failed");
     }
 
     Ok(current_order_state)
@@ -118,7 +118,7 @@ fn handle_order(
 fn get_product_quantity(conn: &pg::Connection, article: &Cart) -> Result<i32> {
     // Welcome to SQL-Injection its cool, its fun for everybody!!!
     let sql =
-        format!("SELECT quantity FROM products.\"products-details\" \
+        format!("SELECT quantity FROM products.\"product_details\" \
         WHERE name = '{}' AND article_number = '{}'", article.name, article.id);
     // ParameterValue is not working - fix later (maybe)
     //let params = vec![ParameterValue::Str(article.name)];
@@ -154,6 +154,22 @@ fn get_customer_id(conn: &pg::Connection, customer: &Customer) -> Result<i32> {
     }
 }
 
+fn get_order_id(conn: &pg::Connection, start_time: DateTime<Utc>, customer_id: i32) -> Result<i32> {
+    let sql = format!("SELECT id FROM products.\"order_details\" WHERE customer_id = '{}' AND timestamp_created = '{}'", customer_id, start_time);
+    let rowset = conn.query(&sql, &[])?;
+
+    match rowset.rows.first() {
+        None => Ok(0),
+        Some(row) => match row.first() {
+            None => Ok(0),
+            Some(pg::DbValue::Int32(i)) => Ok(*i),
+            Some(other) => Err(anyhow!(
+                "Unexpected error while fetching order id from database: {:?}", other)
+            ),
+        },
+    }
+}
+
 fn insert_customer_data(
     conn: &pg::Connection,
     order: &Order,
@@ -176,21 +192,40 @@ fn insert_customer_data(
     Ok(rows_affected.try_into().unwrap())
 }
 
-fn insert_order_data(
+fn insert_order_detail_data(
     conn: &pg::Connection,
     order: &Order,
     ordered_products: &mut HashMap<String, i32>,
     start_time: DateTime<Utc>
 ) -> Result<OrderState> {
-    let sql = format!("INSERT INTO products.\"orders\" \
-    (timestamp_order_request, product_sum, total_order, customer_id, order_state) VALUES ('{}', '{}', '{}', '{}', '{:?}')",
+    let sql = format!("INSERT INTO products.\"order_details\" \
+    (timestamp_created, total_products, total_price, customer_id, order_state) VALUES ('{}', '{}', '{}', '{}', '{:?}')",
                       start_time,
                       serde_json::to_string(&ordered_products).unwrap(),
                       order.order_total,
                       get_customer_id(&conn, &order.customer).unwrap(),
                       OrderState::Completed,
     );
+ 
     conn.execute(&sql, &[])?;
+
+
+    for article in &order.checkout {
+        let quantity = ordered_products.get(&article.name).unwrap();
+        insert_order_item_data(conn, article, order, *quantity, start_time).expect("failed insert order items.");
+    }
+    
     println!("Stored order data for: {:?}", serde_json::to_string(&ordered_products).unwrap());
     Ok(OrderState::Completed)
+}
+
+fn insert_order_item_data(conn: &pg::Connection, article: &Cart, order: &Order, order_quantity: i32, start_time: DateTime<Utc>) -> Result<u64> {
+    let customer_id = get_customer_id(conn, &order.customer).unwrap();
+    let order_id = get_order_id(conn, start_time, customer_id).unwrap();
+    println!("CUST_ID = {}, ORDER_ID = {}", customer_id, order_id);
+    let sql = format!("INSERT INTO products.\"order_items\" (order_id, product_id, order_quantity, timestamp_created) VALUES ('{}', '{}', '{}', '{}')", order_id, article.id, order_quantity, start_time);
+    
+    let rows_affected = conn.execute(&sql, &[])?;
+    println!("Updated order details data for article: {:?}", article.name);
+    Ok(rows_affected.try_into().unwrap())
 }
