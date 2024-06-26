@@ -29,12 +29,25 @@ const cartItemSchema = {
     },
 } as const;
 
+const cartItemPatchSchema = {
+    properties: {
+        id: { type: 'uint32' },
+    },
+    optionalProperties: {
+        quantity: { type: 'uint32' },
+        price: { type: 'float64' },
+    },
+} as const;
+
 type CartItem = JTDDataType<typeof cartItemSchema>;
+type CartItemPatch = JTDDataType<typeof cartItemPatchSchema>;
 
 const validators = new Map();
 const ajv = new Ajv();
 
+// ajv.validate is deadly slow in QuickJS (~seconds!), so we precompile the validators
 validators.set(cartItemSchema, ajv.compile<CartItem>(cartItemSchema));
+validators.set(cartItemPatchSchema, ajv.compile<CartItemPatch>(cartItemPatchSchema));
 
 export const handleRequest: HandleRequest = async function (request: HttpRequest): Promise<HttpResponse> {
     const now = Date.now();
@@ -117,11 +130,9 @@ async function handleCartsItem(
 }
 
 async function cartsGET(request: HttpRequest, cartId: number): Promise<HttpResponse> {
-    return {
-        status: 200,
-        headers: { 'content-type': 'text/plain' },
-        body: `GET /carts/${cartId}`,
-    };
+    const queryResult = query('SELECT * FROM cart.cart_items WHERE cart_id = $1', [cartId]);
+
+    return queryResult.rows.length === 0 ? responseNotFound() : responseJson({ customerId: cartId });
 }
 
 async function cartsItemsGET(request: HttpRequest, cartId: number): Promise<HttpResponse> {
@@ -129,13 +140,7 @@ async function cartsItemsGET(request: HttpRequest, cartId: number): Promise<Http
 
     if (queryResult.rows.length === 0) return responseNotFound();
 
-    const result: Array<CartItem> = queryResult.rows.map(([id, quantity, price]) => ({
-        id: id as number,
-        quantity: quantity as number,
-        price: price as number,
-    }));
-
-    return responseJson(result);
+    return responseJson(queryResult.rows.map(rowToItem));
 }
 
 async function cartsItemsPOST(request: HttpRequest, cartId: number): Promise<HttpResponse> {
@@ -145,6 +150,8 @@ async function cartsItemsPOST(request: HttpRequest, cartId: number): Promise<Htt
     }
 
     const item = parsedBody.body;
+    // Hack: make sure that the rust <-> QuickJS bridge code properly identifies the parameter
+    // as f64
     item.price += Number.EPSILON;
 
     try {
@@ -157,27 +164,57 @@ async function cartsItemsPOST(request: HttpRequest, cartId: number): Promise<Htt
 }
 
 async function cartsItemsPATCH(request: HttpRequest, cartId: number): Promise<HttpResponse> {
-    return {
-        status: 200,
-        headers: { 'content-type': 'text/plain' },
-        body: `PATCH /carts/${cartId}/items`,
-    };
+    const parsedBody = parseBody(request, cartItemPatchSchema);
+    if (!parsedBody.ok) {
+        return responseBadRequest(parsedBody.error);
+    }
+
+    const patch = parsedBody.body;
+    // Hack: make sure that the rust <-> QuickJS bridge code properly identifies the parameter
+    // as f64
+    if (patch.price !== undefined) patch.price += Number.EPSILON;
+
+    const params: Array<RdbmsParam> = [cartId, patch.id];
+    const mutations: Array<string> = [];
+
+    if (patch.quantity !== undefined) {
+        params.push(patch.quantity);
+        mutations.push(`quantity = $${params.length}`);
+    }
+
+    if (patch.price !== undefined) {
+        params.push(patch.price);
+        mutations.push(`price = $${params.length}`);
+    }
+
+    if (mutations.length === 0) return responseEmpty();
+
+    const sql = `UPDATE cart.cart_items SET ${mutations.join(', ')} WHERE cart_id = $1 AND item_id = $2`;
+    execute(sql, params);
+
+    const queryResult = query(
+        'SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1 AND item_id = $2',
+        [cartId, patch.id]
+    );
+
+    if (queryResult.rows.length === 0) return responseNotFound();
+
+    return responseJson(rowToItem(queryResult.rows[0]));
 }
 
 async function cartsItemsDELETE(request: HttpRequest, cartId: number): Promise<HttpResponse> {
-    return {
-        status: 200,
-        headers: { 'content-type': 'text/plain' },
-        body: `DELETE /carts/${cartId}/items`,
-    };
+    const queryResult = query('DELETE FROM cart.cart_items WHERE cart_id = $1 RETURNING *', [cartId]);
+
+    return queryResult.rows.length === 0 ? responseNotFound() : responseEmpty();
 }
 
 async function cartsItemDELETE(request: HttpRequest, cartId: number, itemId: number): Promise<HttpResponse> {
-    return {
-        status: 200,
-        headers: { 'content-type': 'text/plain' },
-        body: `DELETE /carts/${cartId}/items/${itemId}`,
-    };
+    const queryResult = query('DELETE FROM cart.cart_items WHERE cart_id = $1 AND item_id = $2 RETURNING *', [
+        cartId,
+        itemId,
+    ]);
+
+    return queryResult.rows.length === 0 ? responseNotFound() : responseEmpty();
 }
 
 function responseBadRequest(message: string): HttpResponse {
@@ -187,11 +224,8 @@ function responseBadRequest(message: string): HttpResponse {
     };
 }
 
-function responseInternalServerError(message: string): HttpResponse {
-    return {
-        status: 500,
-        body: message,
-    };
+function responseEmpty(): HttpResponse {
+    return { status: 200 };
 }
 
 function responseJson<T>(payload: T): HttpResponse {
@@ -231,6 +265,17 @@ function execute(sql: string, params: Array<RdbmsParam>): void {
     return Pg.execute(dbUrl(), sql, params);
 }
 
+function rowToItem(row: Array<RdbmsParam>): CartItem {
+    const [id, quantity, price] = row;
+
+    return {
+        id: id as number,
+        quantity: quantity as number,
+        price: price as number,
+    };
+}
+
+// ajv.validate is deadly slow in QuickJS (~seconds!), so we precompile the validators
 function validator<T extends Schema>(schema: T): ValidateFunction<JTDDataType<T>> {
     return validators.get(schema);
 }
