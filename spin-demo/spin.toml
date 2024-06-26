@@ -69,7 +69,12 @@ component = "carts-ts"
 
 [component.carts-ts]
 source = "carts-ts/target/carts-ts.wasm"
-allowed_outbound_hosts = []
+
+#environment = { DB_URL = "host=postgres-postgresql.postgres user=myuser password=p05tgr3$ dbname=products" }
+environment = { DB_URL = "host=localhost user=myuser password=p05tgr3$ dbname=products" }
+
+#allowed_outbound_hosts = ["postgres://postgres-postgresql.postgres:5432"]
+allowed_outbound_hosts = ["postgres://localhost:5432"]
 
 [component.carts-ts.build]
 command = "npm run build"
