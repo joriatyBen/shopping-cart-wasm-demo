@@ -2,8 +2,10 @@ import { HandleRequest, HttpRequest, HttpResponse, Pg } from '@fermyon/spin-sdk'
 import Ajv, { JTDDataType, Schema, ValidateFunction } from 'ajv/dist/jtd';
 import 'urlpattern-polyfill';
 
+// This is not exported from the SDK, so redefine it here
 type RdbmsParam = null | boolean | string | number | ArrayBuffer;
 
+// The SDK typings are wrong for this. so we redefine it
 interface QueryResult {
     columns: Array<string>;
     rows: Array<Array<RdbmsParam>>;
@@ -45,7 +47,9 @@ type CartItemPatch = JTDDataType<typeof cartItemPatchSchema>;
 const validators = new Map();
 const ajv = new Ajv();
 
-// ajv.validate is deadly slow in QuickJS (~seconds!), so we precompile the validators
+// ajv.validate is deadly slow in QuickJS (~seconds!), so we precompile the validators.
+// The build process preevaluates and snapshots the code running in QuickJS, so the compilation
+// happens during build and does not incur runtime overhead.
 validators.set(cartItemSchema, ajv.compile<CartItem>(cartItemSchema));
 validators.set(cartItemPatchSchema, ajv.compile<CartItemPatch>(cartItemPatchSchema));
 
