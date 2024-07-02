@@ -1,0 +1,31 @@
+# Dependency directories
+node_modules
+
+# Optional npm cache directory
+.npm
+
+### Go template
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+
+### Java template
+/target/
+*.class
+
+# User-specific stuff:
+.idea
+
+# IntelliJ
+/out/
+
+# mpeltonen/sbt-idea plugin
+.idea_modules/
+
+# Maven builds
+*/target
+*/*/target
+
+# spin
+spin-demo/.spin

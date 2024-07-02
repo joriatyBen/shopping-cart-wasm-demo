@@ -15,31 +15,30 @@ component = "spin-demo"
 [component.spin-demo]
 source = "target/wasm32-wasi/release/spin_demo.wasm"
 
-environment = { DB_URL = "host=postgres-postgresql.postgres user=myuser password=p05tgr3$ dbname=products" }
+environment = { DB_URL = "host=localhost user=myuser password=p05tgr3$ dbname=products" }
 
-allowed_outbound_hosts = ["postgres://postgres-postgresql.postgres:5432"]
+allowed_outbound_hosts = ["postgres://localhost:5432"]
 
 [component.spin-demo.build]
 command = "cargo build --target wasm32-wasi --release"
 watch = ["src/**/*.rs", "Cargo.toml"]
-workdir = "order"
 
 # --------------carts-rs
 
 [[trigger.http]]
-route = "/carts-rs/..."
-component = "carts-rs"
+route = "/carts/..."
+component = "carts"
 
-[component.carts-rs]
-source = "carts-rs/target/wasm32-wasi/release/carts.wasm"
+[component.carts]
+source = "carts/target/wasm32-wasi/release/carts.wasm"
 
-environment = { DB_URL = "host=postgres-postgresql.postgres user=myuser password=p05tgr3$ dbname=products" }
+environment = { DB_URL = "host=localhost user=myuser password=p05tgr3$ dbname=products" }
 
-allowed_outbound_hosts = ["postgres://postgres-postgresql.postgres:5432"]
+allowed_outbound_hosts = ["postgres://localhost:5432"]
 
-[component.carts-rs.build]
+[component.carts.build]
 command = "cargo build --target wasm32-wasi --release"
-workdir = "carts-rs"
+workdir = "carts"
 watch = ["src/**/*.rs", "Cargo.toml"]
 
 # --------------carts-go
@@ -51,9 +50,9 @@ component = "carts-go"
 [component.carts-go]
 source = "carts-go/main.wasm"
 
-environment = { DB_URL = "host=postgres-postgresql.postgres user=myuser password=p05tgr3$ dbname=products" }
+environment = { DB_URL = "host=localhost user=myuser password=p05tgr3$ dbname=products" }
 
-allowed_outbound_hosts = ["postgres://postgres-postgresql.postgres:5432"]
+allowed_outbound_hosts = ["postgres://localhost:5432"]
 
 [component.carts-go.build]
 command = "tinygo build -target=wasi -gc=leaking -no-debug -o main.wasm ."
@@ -69,9 +68,9 @@ component = "carts-ts"
 [component.carts-ts]
 source = "carts-ts/target/carts-ts.wasm"
 
-environment = { DB_URL = "host=postgres-postgresql.postgres user=myuser password=p05tgr3$ dbname=products" }
+environment = { DB_URL = "host=localhost user=myuser password=p05tgr3$ dbname=products" }
 
-allowed_outbound_hosts = ["postgres://postgres-postgresql.postgres:5432"]
+allowed_outbound_hosts = ["postgres://localhost:5432"]
 
 [component.carts-ts.build]
 command = "npm run build"
