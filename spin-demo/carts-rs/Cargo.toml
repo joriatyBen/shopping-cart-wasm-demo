@@ -1,7 +1,7 @@
 [package]
-name = "carts"
+name = "carts-rs"
 authors = ["Christian Speckner <christian.speckner@mayflower.de>"]
-description = "/carts/{customerId}"
+description = "/carts-rs/{customerId}"
 version = "0.1.0"
 edition = "2021"
 

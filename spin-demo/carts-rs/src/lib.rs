@@ -50,9 +50,9 @@ fn handle(req: Request) -> anyhow::Result<Response> {
 }
 
 fn do_handle(req: Request) -> anyhow::Result<Response> {
-    let pattern_cart = build_pattern("/carts/:cartId");
-    let pattern_cart_items = build_pattern("/carts/:cartId/items");
-    let pattern_cart_item = build_pattern("/carts/:cartId/items/:itemId");
+    let pattern_cart = build_pattern("/carts-rs/:cartId");
+    let pattern_cart_items = build_pattern("/carts-rs/:cartId/items");
+    let pattern_cart_item = build_pattern("/carts-rs/:cartId/items/:itemId");
 
     let url = req
         .header("spin-full-url")

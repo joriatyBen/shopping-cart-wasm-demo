@@ -24,15 +24,16 @@ allowed_outbound_hosts = ["postgres://postgres-postgresql.postgres:5432"]
 [component.spin-demo.build]
 command = "cargo build --target wasm32-wasi --release"
 watch = ["src/**/*.rs", "Cargo.toml"]
+workdir = "order"
 
 # --------------rust
 
 [[trigger.http]]
-route = "/carts/..."
-component = "carts"
+route = "/carts-rs/..."
+component = "carts-rs"
 
-[component.carts]
-source = "carts/target/wasm32-wasi/release/carts.wasm"
+[component.carts-rs]
+source = "carts-rs/target/wasm32-wasi/release/carts.wasm"
 
 #environment = { DB_URL = "host=postgres-postgresql.postgres user=myuser password=p05tgr3$ dbname=products" }
 environment = { DB_URL = "host=localhost user=myuser password=p05tgr3$ dbname=products" }
@@ -40,9 +41,9 @@ environment = { DB_URL = "host=localhost user=myuser password=p05tgr3$ dbname=pr
 #allowed_outbound_hosts = ["postgres://postgres-postgresql.postgres:5432"]
 allowed_outbound_hosts = ["postgres://localhost:5432"]
 
-[component.carts.build]
+[component.carts-rs.build]
 command = "cargo build --target wasm32-wasi --release"
-workdir = "carts"
+workdir = "carts-rs"
 watch = ["src/**/*.rs", "Cargo.toml"]
 
 # --------------golang
