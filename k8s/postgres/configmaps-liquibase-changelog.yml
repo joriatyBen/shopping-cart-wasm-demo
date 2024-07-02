@@ -22,7 +22,7 @@ data:
                         primaryKey: true
                   - column:
                       name: article_number
-                      type: varchar(32)
+                      type: int
                       constraints:
                         nullable: false
                   - column:
