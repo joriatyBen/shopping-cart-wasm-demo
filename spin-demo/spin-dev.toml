@@ -13,7 +13,7 @@ route = "/checkout"
 component = "spin-demo"
 
 [component.spin-demo]
-source = "target/wasm32-wasi/release/spin_demo.wasm"
+source = "order-be/target/wasm32-wasi/release/spin_demo.wasm"
 
 environment = { DB_URL = "host=localhost user=myuser password=p05tgr3$ dbname=products" }
 
@@ -22,6 +22,7 @@ allowed_outbound_hosts = ["postgres://localhost:5432"]
 [component.spin-demo.build]
 command = "cargo build --target wasm32-wasi --release"
 watch = ["src/**/*.rs", "Cargo.toml"]
+workdir = "order-be"
 
 # --------------carts-rs
 
