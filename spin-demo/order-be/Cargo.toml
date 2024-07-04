@@ -1,5 +1,5 @@
 [package]
-name = "spin-demo"
+name = "order-be"
 authors = ["benjamin.bajorat <benjamin.bajorat@mayflower.de>"]
 description = ""
 version = "0.3.0"

@@ -10,16 +10,16 @@ description = ""
 
 [[trigger.http]]
 route = "/checkout"
-component = "spin-demo"
+component = "order-be"
 
-[component.spin-demo]
-source = "order-be/target/wasm32-wasi/release/spin_demo.wasm"
+[component.order-be]
+source = "order-be/target/wasm32-wasi/release/order_be.wasm"
 
 environment = { DB_URL = "host=localhost user=myuser password=p05tgr3$ dbname=products" }
 
 allowed_outbound_hosts = ["postgres://localhost:5432"]
 
-[component.spin-demo.build]
+[component.order-be.build]
 command = "cargo build --target wasm32-wasi --release"
 watch = ["src/**/*.rs", "Cargo.toml"]
 workdir = "order-be"
