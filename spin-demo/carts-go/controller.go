@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	spinpg "github.com/fermyon/spin/sdk/go/v2/pg"
+	"github.com/fermyon/spin/sdk/go/v2/pg"
+	"github.com/fermyon/spin/sdk/go/v2/variables"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -235,7 +235,12 @@ func (c *Controller) fetchBody(req *http.Request) {
 }
 
 func connectDb() *sql.DB {
-	return spinpg.Open(os.Getenv("DB_URL"))
+	url, err := variables.Get("database_url")
+	if err != nil {
+		panic(err)
+	}
+
+	return pg.Open(url)
 
 }
 

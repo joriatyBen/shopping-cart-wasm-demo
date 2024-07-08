@@ -1,4 +1,4 @@
-import { HandleRequest, HttpRequest, HttpResponse, Pg } from '@fermyon/spin-sdk';
+import { HandleRequest, HttpRequest, HttpResponse, Pg, Config } from '@fermyon/spin-sdk';
 import Ajv, { JTDDataType, Schema, ValidateFunction } from 'ajv/dist/jtd';
 import 'urlpattern-polyfill';
 
@@ -254,7 +254,7 @@ function parseId(serializedId: string | undefined): number | undefined {
 }
 
 function dbUrl(): string {
-    const url = process.env['DB_URL'];
+    const url = Config.get('database_url');
 
     if (!url) throw new Error('DB_URL not configured');
 

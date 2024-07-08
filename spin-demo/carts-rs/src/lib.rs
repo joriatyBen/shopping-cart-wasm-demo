@@ -3,11 +3,9 @@ use std::time::SystemTime;
 use serde::{Deserialize, Serialize};
 use spin_sdk::http::{Method, Request, Response};
 use spin_sdk::pg::{Connection, DbValue, ParameterValue};
-use spin_sdk::{http_component, pg};
+use spin_sdk::{http_component, pg, variables};
 use url::Url;
 use urlpattern::{UrlPattern, UrlPatternInit};
-
-const DB_URL_ENV: &str = "DB_URL";
 
 #[derive(serde::Deserialize, serde::Serialize, Debug)]
 struct CartItem {
@@ -348,7 +346,7 @@ fn response_empty() -> anyhow::Result<Response> {
 }
 
 fn open_connection() -> Connection {
-    let address = std::env::var(DB_URL_ENV).unwrap();
+    let address = variables::get("database_url").unwrap();
 
     pg::Connection::open(&address).unwrap()
 }

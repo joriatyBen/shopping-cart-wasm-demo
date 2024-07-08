@@ -6,6 +6,14 @@ version = "0.4.0"
 authors = ["benjamin.bajorat <benjamin.bajorat@mayflower.de>"]
 description = ""
 
+[variables]
+
+database_host = { default = "localhost" }
+database_user = { default = "myuser" }
+database_password = { default = "p05tgr3$" }
+database_name = { default = "products" }
+database_port = { default = "5432" }
+
 # --------------order demo
 
 [[trigger.http]]
@@ -31,11 +39,12 @@ route = "/carts-rs/..."
 component = "carts-rs"
 
 [component.carts-rs]
-source = "carts-rs/target/wasm32-wasi/release/carts.wasm"
+source = "carts-rs/target/wasm32-wasi/release/carts_rs.wasm"
 
-environment = { DB_URL = "host=postgres-postgresql.postgres user=myuser password=p05tgr3$ dbname=products" }
+allowed_outbound_hosts = ["postgres://{{ database_host }}:{{ database_port }}"]
 
-allowed_outbound_hosts = ["postgres://postgres-postgresql.postgres:5432"]
+[component.carts-rs.variables]
+database_url = "host={{ database_host }} user={{ database_user }} password={{ database_password }} dbname={{ database_name }}"
 
 [component.carts-rs.build]
 command = "cargo build --target wasm32-wasi --release"
@@ -53,7 +62,10 @@ source = "carts-go/main.wasm"
 
 environment = { DB_URL = "host=postgres-postgresql.postgres user=myuser password=p05tgr3$ dbname=products" }
 
-allowed_outbound_hosts = ["postgres://postgres-postgresql.postgres:5432"]
+allowed_outbound_hosts = ["postgres://{{ database_host }}:{{ database_port }}"]
+
+[component.carts-go.variables]
+database_url = "host={{ database_host }} user={{ database_user }} password={{ database_password }} dbname={{ database_name }}"
 
 [component.carts-go.build]
 command = "tinygo build -target=wasi -gc=leaking -no-debug -o main.wasm ."
@@ -69,11 +81,12 @@ component = "carts-ts"
 [component.carts-ts]
 source = "carts-ts/target/carts-ts.wasm"
 
-environment = { DB_URL = "host=postgres-postgresql.postgres user=myuser password=p05tgr3$ dbname=products" }
+allowed_outbound_hosts = ["postgres://{{ database_host }}:{{ database_port }}"]
 
-allowed_outbound_hosts = ["postgres://postgres-postgresql.postgres:5432"]
+[component.carts-ts.variables]
+database_url = "host={{ database_host }} user={{ database_user }} password={{ database_password }} dbname={{ database_name }}"
 
 [component.carts-ts.build]
-command = "npm run build"
+command = "npm install && npm run build"
 workdir = "carts-ts"
 watch = ["**/*.ts"]
