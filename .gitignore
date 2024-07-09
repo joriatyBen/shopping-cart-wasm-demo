@@ -3,8 +3,6 @@ node_modules
 
 # Optional npm cache directory
 .npm
-package.json
-package-lock.json
 
 ### Go template
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
