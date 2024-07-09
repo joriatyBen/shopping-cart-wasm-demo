@@ -28,5 +28,5 @@ spec:
       volumes:
         - name: liquibase-changelog
           configMap:
-            name: db-changelog-config-dev
+            name: db-changelog-config
   backoffLimit: 4

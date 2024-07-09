@@ -8,11 +8,58 @@ data:
   databaseChangeLog.yml: |
     databaseChangeLog:
       - changeSet:
+          id: create-schema-cart
+          author: "specki"
+          changes:
+            - sql:
+                comment:
+                dbms:
+                endDelimiter: ;
+                splitStatements: true
+                sql: "CREATE SCHEMA IF NOT EXISTS cart"
+                stripComments: false
+      - changeSet:
+          id: create-cart-item-table
+          author: "specki"
+          changes:
+            - createTable:
+                catalogName: cart
+                schemaName: cart
+                tableName: cart_items
+                columns:
+                  - column:
+                      name: cart_id
+                      type: int
+                      constraints:
+                        primaryKey: true
+                  - column:
+                      name: item_id
+                      type: int
+                      constraints:
+                        primaryKey: true
+                  - column:
+                      name: quantity
+                      type: int
+                  - column:
+                      name: price
+                      type: float
+      - changeSet:
+          id: create-schema-order
+          author: "specki"
+          changes:
+            - sql:
+                comment:
+                dbms:
+                endDelimiter: ;
+                splitStatements: true
+                sql: "CREATE SCHEMA IF NOT EXISTS orders"
+                stripComments: false
+      - changeSet:
           id: create-products-table
           author: "joriatyBen"
           changes:
             - createTable:
-                catalogName: products
+                catalogName: orders
                 columns:
                   - column:
                       name: id
@@ -45,14 +92,14 @@ data:
                       type: int
                       constraints:
                         nullable: false
-                schemaName: products
+                schemaName: orders
                 tableName: product_details
       - changeSet:
           id: insert-products-table
           author: "joriatyBen"
           changes:
             - insert:
-                catalogName: products
+                catalogName: orders
                 columns:
                   - column:
                       name: article_number
@@ -66,10 +113,10 @@ data:
                   - column:
                       name: sellers_price
                       value: 10
-                schemaName: products
+                schemaName: orders
                 tableName: product_details
             - insert:
-                catalogName: products
+                catalogName: orders
                 columns:
                   - column:
                       name: article_number
@@ -83,10 +130,10 @@ data:
                   - column:
                       name: sellers_price
                       value: 11
-                schemaName: products
+                schemaName: orders
                 tableName: product_details
             - insert:
-                catalogName: products
+                catalogName: orders
                 columns:
                   - column:
                       name: article_number
@@ -100,7 +147,7 @@ data:
                   - column:
                       name: sellers_price
                       value: 12
-                schemaName: products
+                schemaName: orders
                 tableName: product_details
       - changeSet:
           id: create-customers-table
@@ -150,7 +197,7 @@ data:
                       type: datetime
                       constraints:
                         nullable: true
-                schemaName: products
+                schemaName: orders
                 tableName: customers
       - changeSet:
           id: addUniqueConstraint-customers
@@ -160,7 +207,7 @@ data:
                 catalogName: customers
                 columnNames: name, email
                 constraintName: unique_name_email
-                schemaName: products
+                schemaName: orders
                 tableName: customers
                 validate: true
       - changeSet:
@@ -196,7 +243,7 @@ data:
                       type: datetime
                       constraints:
                         nullable: true
-                schemaName: products
+                schemaName: orders
                 tableName: order_items
       - changeSet:
           id: create-order-details-table
@@ -236,20 +283,20 @@ data:
                       type: varchar(32)
                       constraints:
                         nullable: false
-                schemaName: products
+                schemaName: orders
                 tableName: order_details
       - changeSet:
           id: add-foreign-key-to-order-details
           author: "joriatyBen"
           changes:
             - addForeignKeyConstraint:
-                baseTableCatalogName: products
-                baseTableSchemaName: products
+                baseTableCatalogName: orders
+                baseTableSchemaName: orders
                 baseTableName: order_details
                 baseColumnNames: customer_id
                 constraintName: fk_customers_id
-                referencedTableCatalogName: products
-                referencedTableSchemaName: products
+                referencedTableCatalogName: orders
+                referencedTableSchemaName: orders
                 referencedTableName: customers
                 referencedColumnNames: id
       - changeSet:
@@ -257,12 +304,12 @@ data:
           author: "joriatyBen"
           changes:
             - addForeignKeyConstraint:
-                baseTableCatalogName: products
-                baseTableSchemaName: products
+                baseTableCatalogName: orders
+                baseTableSchemaName: orders
                 baseTableName: order_items
                 baseColumnNames: order_id
                 constraintName: fk_order_id
-                referencedTableCatalogName: products
-                referencedTableSchemaName: products
+                referencedTableCatalogName: orders
+                referencedTableSchemaName: orders
                 referencedTableName: order_details
                 referencedColumnNames: id
