@@ -24,7 +24,7 @@ node_modules
 # mpeltonen/sbt-idea plugin
 .idea_modules/
 
-# Maven builds
+# builds
 */target
 */*/target
 
