@@ -41,11 +41,6 @@ public class ItemResource implements Resource<Item> {
   }
 
   @Override
-  public Supplier<Item> value() {
-    return null;
-  }
-
-  @Override
   public Supplier<Item> create() {
     return () -> {
       try {
@@ -56,7 +51,7 @@ public class ItemResource implements Resource<Item> {
                 item.get().getPrice()
         ));
       } catch (NullPointerException e) {
-        e.printStackTrace();
+        //e.printStackTrace();
         return itemRepository.save(new Item(
                 customerId,
                 item.get().getItemId(),
