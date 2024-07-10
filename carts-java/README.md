@@ -4,8 +4,6 @@
 # DEPRECATED: cart
 A microservices-demo service that provides shopping carts for users.
 
-This build is built, tested and released by travis.
-
 # API Spec
 
 Checkout the API Spec [here](https://github.com/joriatyBen/shopping-cart-wasm-demo/blob/main/carts-java/api-spec/carts.json)
@@ -14,15 +12,16 @@ Checkout the API Spec [here](https://github.com/joriatyBen/shopping-cart-wasm-de
 
 ## Java
 
-`mvn -DskipTests package`
+`mvn package`
 
 ## Docker
 
-`GROUP=weaveworksdemos COMMIT=test ./scripts/build.sh`
+`make build $$ make push version=<semantic-version>`
 
 # Run
 
 `mvn spring-boot:run`
+local container: `make run`
 
 # Endpoints
 
