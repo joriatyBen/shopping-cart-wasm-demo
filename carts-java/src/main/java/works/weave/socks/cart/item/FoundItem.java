@@ -15,7 +15,7 @@ public class FoundItem implements Supplier<Item> {
   private final Supplier<ItemRepository> itemRepository;
   private int customerId;
 
-  public FoundItem(int customerId, Supplier<ItemRepository> itemRepository) {
+  public FoundItem(Supplier<ItemRepository> itemRepository, int customerId) {
     this.customerId = customerId;
     this.itemRepository = itemRepository;
   }
@@ -25,23 +25,25 @@ public class FoundItem implements Supplier<Item> {
     this.itemRepository = itemRepository;
   }
 
+  public FoundItem(Supplier<Item> item, Supplier<ItemRepository> itemRepository, int customerId) {
+    this.customerId = customerId;
+    this.item = item;
+    this.itemRepository = itemRepository;
+  }
+
   @Override
   public Item get() {
+    LOG.info("Query item by item id {}", item.get().getItemId());
     return itemRepository.get().findByItemId(item.get().getItemId());
   }
 
   public List<Item> getByCustomerId() {
-    return itemRepository.get().findByCustomerId(customerId);
+    LOG.info("Query items by cart id {}", customerId);
+    return itemRepository.get().findAllByCustomerId(customerId);
   }
 
-  public Item getByItemId() {
-    return getByCustomerId().stream()
-                   .filter(itemEntry -> itemEntry.getItemId() == item.get().getItemId())
-                   .findFirst()
-                   .orElseThrow(() -> new IllegalArgumentException("Cannot find item in db"));
-  }
-
-  public Item getByItemId(int itemId) {
+  public Item getByItemAndCustId(int itemId) {
+    LOG.info("Query items by cart id {} and filter by unique item id {}", customerId, itemId);
     return getByCustomerId().stream()
                    .filter(itemEntry -> itemEntry.getItemId() == itemId)
                    .findFirst()

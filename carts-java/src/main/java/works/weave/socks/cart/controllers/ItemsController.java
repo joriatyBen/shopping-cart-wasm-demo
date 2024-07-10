@@ -25,20 +25,20 @@ public class ItemsController {
 
   @ResponseStatus(HttpStatus.OK)
   @RequestMapping(produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET)
-  public Item get(@PathVariable int customerId) {
-    return new FoundItem(customerId, () -> itemRepository).getByItemId();
+  public List<Item> get(@PathVariable int customerId) {
+    return new FoundItem(() -> itemRepository, customerId).getByCustomerId();
   }
 
   @ResponseStatus(HttpStatus.OK)
   @RequestMapping(value = "/items/{itemId:.*}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET)
   public Item get(@PathVariable int customerId, @PathVariable int itemId) {
-    return new FoundItem(customerId, () -> itemRepository).getByItemId(itemId);
+    return new FoundItem(() -> itemRepository, customerId).getByItemAndCustId(itemId);
   }
 
   @ResponseStatus(HttpStatus.OK)
   @RequestMapping(value = "/items", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET)
   public List<Item> getItems(@PathVariable int customerId) {
-    return new FoundItem(customerId, () -> itemRepository).getByCustomerId();
+    return new FoundItem(() -> itemRepository, customerId).getByCustomerId();
   }
 
   @ResponseStatus(HttpStatus.CREATED)
@@ -46,11 +46,14 @@ public class ItemsController {
   public Item addToCart(@PathVariable int customerId, @RequestBody Item item) {
     try {
       FoundItem foundItem = new FoundItem(() -> item, () -> itemRepository);
-      updateItem(customerId, foundItem.get());
-      LOG.debug("Found item in cart. Incrementing for user: {}, {}", customerId, item);
+      foundItem.getByItemAndCustId(item.getItemId());
+      LOG.info("Found item in cart. Updating quantity {} and price {} for user: {}", item.getQuantity(), item.getPrice(), customerId);
+      updateItem(customerId, item);
+      item.setCustomerId(customerId);
+
       return item;
-    } catch (NullPointerException e) {
-      LOG.debug("Did not find item. Creating item for user: {}, {}", customerId, item);
+    } catch (RuntimeException e) {
+      LOG.info("Did not find item. Creating item for user: {}, {}", customerId, item.getItemId());
       return new ItemResource(itemRepository, () -> item, customerId).create().get();
     }
   }
@@ -58,21 +61,34 @@ public class ItemsController {
   @ResponseStatus(HttpStatus.ACCEPTED)
   @RequestMapping(value = "/items/{itemId:.*}", method = RequestMethod.DELETE)
   public void removeItem(@PathVariable int customerId, @PathVariable int itemId) {
-    LOG.debug("Deleting item: {}", itemId);
-    new ItemResource(itemRepository, customerId, itemId).destroy().run();
+    try {
+      Item foundItem = new FoundItem(() -> itemRepository, customerId).getByItemAndCustId(itemId);
+      LOG.info("Deleting item: {}", foundItem.getItemId());
+      new ItemResource(itemRepository, customerId, itemId).destroy().run();
+    } catch (IllegalArgumentException e) {
+      LOG.warn("Item {} not found", itemId);
+    }
   }
 
   @ResponseStatus(HttpStatus.ACCEPTED)
   @RequestMapping(value = "/items", method = RequestMethod.DELETE)
   public void removeItem(@PathVariable int customerId) {
-    LOG.debug("Deleting item wit cart_id: {}", customerId);
+    List<Item> foundItem = new FoundItem(() -> itemRepository, customerId).getByCustomerId();
+    LOG.info("Deleting {} item(s) in cart for user: {}", (long) foundItem.size(), customerId);
     new ItemResource(itemRepository, customerId).destroyByCustomerId().run();
   }
 
   @ResponseStatus(HttpStatus.ACCEPTED)
   @RequestMapping(value = "/items", consumes = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PATCH)
   public void updateItem(@PathVariable int customerId, @RequestBody Item item) {
-    LOG.debug("Updating item in cart for user: {}, {}", customerId, item);
-    new ItemResource(itemRepository, () -> item, customerId).update().run();
+    try {
+      Item foundItem = new FoundItem(() -> item, () -> itemRepository, customerId).getByItemAndCustId(item.getItemId());
+      LOG.info("Updating item in cart for user: {}, {}", customerId, foundItem.getItemId());
+      new ItemResource(itemRepository, () -> item, customerId).update().run();
+    } catch (IllegalArgumentException e) {
+      //e.printStackTrace();
+      LOG.warn("Cannot find item with customer_id: {}, item_id: {}", customerId, item.getItemId());
+      LOG.info("Not updating item in cart");
+    }
   }
 }

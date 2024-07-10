@@ -56,8 +56,9 @@ public class ItemResource implements Resource<Item> {
                 item.get().getPrice()
         ));
       } catch (NullPointerException e) {
+        e.printStackTrace();
         return itemRepository.save(new Item(
-                item.get().cartId(),
+                customerId,
                 item.get().getItemId(),
                 0,
                 0

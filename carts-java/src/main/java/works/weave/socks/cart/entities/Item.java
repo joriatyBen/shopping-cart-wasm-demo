@@ -13,11 +13,11 @@ import java.util.Objects;
 @AllArgsConstructor
 @Table(name = "cart_items")
 public class Item {
-    @Id
-   // @GeneratedValue(strategy = GenerationType.)
+    //@Id
     @Column(name = "cart_id")
     private int customerId;
 
+    @Id
     @Column(name = "item_id")
     private int itemId;
 
@@ -28,10 +28,6 @@ public class Item {
     private float price;
 
     public Item() {
-    }
-
-    public int cartId() {
-        return customerId;
     }
 
     @Override
