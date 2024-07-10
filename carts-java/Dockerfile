@@ -1,6 +1,8 @@
-FROM java:openjdk-8-alpine
+FROM openjdk:23-ea-17-jdk-bullseye
 
-WORKDIR /usr/src/app
-COPY ./target/*.jar ./app.jar
+WORKDIR /opt
+ENV PORT 8081
+EXPOSE 8081
 
-ENTRYPOINT ["java","-Djava.security.egd=file:/dev/urandom","-jar","./app.jar", "--port=80"]
+COPY target/*.jar /opt/app.jar
+ENTRYPOINT exec java $JAVA_OPTS -jar app.jar
