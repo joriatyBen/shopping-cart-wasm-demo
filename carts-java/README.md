@@ -8,7 +8,7 @@ This build is built, tested and released by travis.
 
 # API Spec
 
-Checkout the API Spec [here](http://microservices-demo.github.io/api/index?url=https://raw.githubusercontent.com/microservices-demo/carts/master/api-spec/cart.json)
+Checkout the API Spec [here](https://github.com/joriatyBen/shopping-cart-wasm-demo/blob/main/carts-java/api-spec/carts.json)
 
 # Build
 
@@ -20,22 +20,50 @@ Checkout the API Spec [here](http://microservices-demo.github.io/api/index?url=h
 
 `GROUP=weaveworksdemos COMMIT=test ./scripts/build.sh`
 
-# Test
-
-`./test/test.sh < python testing file >`. For example: `./test/test.sh unit.py`
-
 # Run
 
 `mvn spring-boot:run`
 
-# Check
+# Endpoints
 
-`curl http://localhost:8081/health`
+GET /carts-rs/
+```shell
+curl -X GET http://127.0.0.1:8081/carts/1
+```
 
-# Use
+GET /carts-rs/items
+```shell 
+curl -X GET http://127.0.0.1:8081/carts/1/items
+```
 
-`curl http://localhost:8081`
+POST /carts-rs/items
+```shell
+curl -X POST http://127.0.0.1:8081/carts/1/items \
+-H "Content-Type: application/json" \
+-d '{
+"itemId": 123,
+"quantity": 2,
+"price": 19.99
+}'
+```
 
-# Push
+PATCH /carts-rs/items
+```shell
+curl -X PATCH http://127.0.0.1:8081/carts/1/items \
+-H "Content-Type: application/json" \
+-d '{
+"itemId": 123,
+"quantity": 3,
+"price": 17.99
+}'
+```
 
-`GROUP=weaveworksdemos COMMIT=test ./scripts/push.sh`
+DELETE /carts-rs/items
+```shell
+curl -X DELETE http://127.0.0.1:8081/carts/1/items
+```
+
+DELETE /carts-rs/items
+```shell
+curl -X DELETE http://127.0.0.1:8081/carts/1/items/123
+```
