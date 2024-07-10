@@ -24,17 +24,17 @@ local container: `make run`
 
 GET /carts-rs/
 ```shell
-curl -X GET http://127.0.0.1:8081/carts/1
+curl -X GET http://127.0.0.1:8081/carts-java/1
 ```
 
 GET /carts-rs/items
 ```shell 
-curl -X GET http://127.0.0.1:8081/carts/1/items
+curl -X GET http://127.0.0.1:8081/carts-java/1/items
 ```
 
 POST /carts-rs/items
 ```shell
-curl -X POST http://127.0.0.1:8081/carts/1/items \
+curl -X POST http://127.0.0.1:8081/carts-java/1/items \
 -H "Content-Type: application/json" \
 -d '{
 "itemId": 123,
@@ -45,7 +45,7 @@ curl -X POST http://127.0.0.1:8081/carts/1/items \
 
 PATCH /carts-rs/items
 ```shell
-curl -X PATCH http://127.0.0.1:8081/carts/1/items \
+curl -X PATCH http://127.0.0.1:8081/carts-java/1/items \
 -H "Content-Type: application/json" \
 -d '{
 "itemId": 123,
@@ -56,10 +56,10 @@ curl -X PATCH http://127.0.0.1:8081/carts/1/items \
 
 DELETE /carts-rs/items
 ```shell
-curl -X DELETE http://127.0.0.1:8081/carts/1/items
+curl -X DELETE http://127.0.0.1:8081/carts-java/1/items
 ```
 
 DELETE /carts-rs/items
 ```shell
-curl -X DELETE http://127.0.0.1:8081/carts/1/items/123
+curl -X DELETE http://127.0.0.1:8081/carts-java/1/items/123
 ```

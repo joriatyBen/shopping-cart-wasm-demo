@@ -15,7 +15,7 @@ import java.util.List;
 import static org.slf4j.LoggerFactory.getLogger;
 
 @RestController
-@RequestMapping(value = "/carts/{customerId:.*}")
+@RequestMapping(value = "/carts-java/{customerId:.*}")
 public class ItemsController {
   private final Logger LOG = getLogger(getClass());
 
