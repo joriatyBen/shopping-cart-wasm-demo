@@ -1,6 +1,8 @@
 # DEPRECATED: cart
 A microservices-demo service that provides shopping carts for users.
 
+The original YAGNI shopping cart by Weave Works could be found [here](https://github.com/microservices-demo/carts)
+
 # API Spec
 
 Checkout the API Spec [here](https://github.com/joriatyBen/shopping-cart-wasm-demo/blob/main/carts-java/api-spec/carts.json)

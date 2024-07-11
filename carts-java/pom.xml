@@ -5,10 +5,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>works.weave.microservices-demo</groupId>
-    <artifactId>carts</artifactId>
+    <artifactId>carts-java</artifactId>
     <packaging>jar</packaging>
 
-    <name>carts</name>
+    <name>carts-java</name>
     <description>Carts service for microservices-demo application</description>
 
     <parent>
@@ -60,7 +60,7 @@
     </dependencies>
 
     <build>
-        <finalName>carts</finalName>
+        <finalName>carts-java</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
