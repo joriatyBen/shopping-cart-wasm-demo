@@ -1,0 +1,44 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: carts-java-service
+  namespace: carts-java
+spec:
+  selector:
+    app.kubernetes.io/name: carts-java
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: carts-java
+  namespace: carts-java
+  labels:
+    app: carts-java
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: carts-java
+  template:
+    metadata:
+      labels:
+        app: carts-java
+    spec:
+      containers:
+      - name: carts-java
+        image: ghcr.io/joriatyben/carts-java:1.1.0
+        env:
+        - name: PG_HOST
+          value: "postgres-postgresql.postgres"
+        - name: PG_PORT
+          value: "5432"
+        ports:
+        -   containerPort: 8081
+      imagePullSecrets:
+      - name: ghcr
+
