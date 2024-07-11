@@ -18,16 +18,16 @@ metadata:
   name: carts-java
   namespace: carts-java
   labels:
-    app: carts-java
+    app.kubernetes.io/name: carts-java
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: carts-java
+      app.kubernetes.io/name: carts-java
   template:
     metadata:
       labels:
-        app: carts-java
+        app.kubernetes.io/name: carts-java
     spec:
       containers:
       - name: carts-java
@@ -38,7 +38,7 @@ spec:
         - name: PG_PORT
           value: "5432"
         ports:
-        -   containerPort: 8081
+        - containerPort: 8081
       imagePullSecrets:
       - name: ghcr
 
