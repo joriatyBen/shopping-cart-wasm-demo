@@ -25,7 +25,7 @@ type ParseBodyResult<T> = ParseBodyResultOK<T> | ParseBodyResultError;
 
 const cartItemSchema = {
     properties: {
-        id: { type: 'uint32' },
+        itemId: { type: 'uint32' },
         quantity: { type: 'uint32' },
         price: { type: 'float64' },
     },
@@ -33,7 +33,7 @@ const cartItemSchema = {
 
 const cartItemPatchSchema = {
     properties: {
-        id: { type: 'uint32' },
+        itemId: { type: 'uint32' },
     },
     optionalProperties: {
         quantity: { type: 'uint32' },
@@ -159,7 +159,7 @@ async function cartsItemsPOST(request: HttpRequest, cartId: number): Promise<Htt
     item.price += Number.EPSILON;
 
     try {
-        execute('INSERT INTO cart.cart_items VALUES($1, $2, $3, $4)', [cartId, item.id, item.quantity, item.price]);
+        execute('INSERT INTO cart.cart_items VALUES($1, $2, $3, $4)', [cartId, item.itemId, item.quantity, item.price]);
     } catch (e) {
         return responseBadRequest('duplicate key');
     }
@@ -178,7 +178,7 @@ async function cartsItemsPATCH(request: HttpRequest, cartId: number): Promise<Ht
     // as f64
     if (patch.price !== undefined) patch.price += Number.EPSILON;
 
-    const params: Array<RdbmsParam> = [cartId, patch.id];
+    const params: Array<RdbmsParam> = [cartId, patch.itemId];
     const mutations: Array<string> = [];
 
     if (patch.quantity !== undefined) {
@@ -198,7 +198,7 @@ async function cartsItemsPATCH(request: HttpRequest, cartId: number): Promise<Ht
 
     const queryResult = query(
         'SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1 AND item_id = $2',
-        [cartId, patch.id]
+        [cartId, patch.itemId]
     );
 
     if (queryResult.rows.length === 0) return responseNotFound();
@@ -273,7 +273,7 @@ function rowToItem(row: Array<RdbmsParam>): CartItem {
     const [id, quantity, price] = row;
 
     return {
-        id: id as number,
+        itemId: id as number,
         quantity: quantity as number,
         price: price as number,
     };
