@@ -1,0 +1,21 @@
+apiVersion: core.spinoperator.dev/v1alpha1
+kind: SpinApp
+metadata:
+  name: cart-api
+spec:
+  image: "ghcr.io/joriatyben/cart-api:0.0.3"
+  imagePullSecrets:
+    - name: ghcr
+  executor: containerd-shim-spin
+  replicas: 2
+  variables:
+    - name: database_host
+      value: postgres-postgresql.postgres.svc.cluster.local
+    - name: database_user
+      value: myuser
+    - name: database_password
+      value: "p05tgr3$"
+    - name: database_name
+      value: products
+    - name: database_port
+      value: "5432"
