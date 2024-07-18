@@ -41,4 +41,22 @@ spec:
         - containerPort: 8081
       imagePullSecrets:
       - name: ghcr
-
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: prometheus
+  namespace: prometheus
+  labels:
+    serviceMonitorSelector: prometheus
+spec:
+  endpoints:
+  - interval: 30s
+    targetPort: 8081
+    path: /metrics
+  namespaceSelector:
+    matchNames:
+    - prometheus
+  selector:
+    matchLabels:
+      operated-prometheus: "true"

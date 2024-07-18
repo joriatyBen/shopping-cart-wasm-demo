@@ -30,7 +30,7 @@
           '';
         RUST_LOG = "spin=trace";
         WASMTIME_BACKTRACE_DETAILS = "1";
-       CPATH = "/nix/store/4q9wv7pgvnmxlhaknp2lns2d0gmznkdq-tinygo-0.30.0/share/tinygo/lib/wasi-libc/sysroot/include";
+        #CPATH = "/nix/store/4q9wv7pgvnmxlhaknp2lns2d0gmznkdq-tinygo-0.30.0/share/tinygo/lib/wasi-libc/sysroot/include";
         };
       }
     );
