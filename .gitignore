@@ -33,3 +33,6 @@ spin-demo/.spin
 
 # terraform
 terraform/bootstrap/.terraform/*
+terraform/wasmdemo/.terraform/*
+terraform/wasmdemo/kubeconfig
+terraform/wasmdemo/terraform.tfstate
