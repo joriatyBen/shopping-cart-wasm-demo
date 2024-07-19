@@ -30,3 +30,6 @@ node_modules
 
 # spin
 spin-demo/.spin
+
+# terraform
+terraform/bootstrap/.terraform/*
