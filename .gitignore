@@ -36,3 +36,6 @@ terraform/bootstrap/.terraform/*
 terraform/wasmdemo/.terraform/*
 terraform/wasmdemo/kubeconfig
 terraform/wasmdemo/terraform.tfstate
+
+# ansible
+/_build

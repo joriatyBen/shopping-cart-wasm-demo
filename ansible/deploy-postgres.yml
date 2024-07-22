@@ -1,0 +1,17 @@
+---
+- name: deploy postgres
+  hosts: localhost
+  gather_facts: no
+  become: no
+  vars_files:
+    - "properties/properties.yml"
+  roles:
+    - role: postgres/init_db
+    - role: postgres/install
+  pre_tasks:
+    - name: create namespace
+      k8s:
+        name: postgres
+        kind: Namespace
+        state: present
+        kubeconfig: "{{ kubeconfig }}"

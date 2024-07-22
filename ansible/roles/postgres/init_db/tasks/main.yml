@@ -1,0 +1,5 @@
+---
+- name: Apply Configmap Liquibase changelog
+  kubernetes.core.k8s:
+    state: present
+    src: ../files/configmaps-liquibase-changelog.yml

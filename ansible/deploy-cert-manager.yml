@@ -1,0 +1,16 @@
+---
+- name: deploy cert-manager
+  hosts: localhost
+  gather_facts: no
+  become: no
+  vars_files:
+    - "properties/properties.yml"
+  roles:
+    - role: cert-manager
+  pre_tasks:
+    - name: create namespace
+      k8s:
+        name: cert-manager
+        kind: Namespace
+        state: present
+        kubeconfig: "{{ kubeconfig }}"

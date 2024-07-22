@@ -1,0 +1,16 @@
+---
+- name: install Postgres from Helm chart
+  kubernetes.core.helm:
+    name: postgres
+    chart_ref: oci://registry-1.docker.io/bitnamicharts/postgresql
+    chart_version: 15.5.0
+    release_namespace: postgres
+    update_repo_cache: yes
+    values: "{{ lookup('template', 'values.yml.j2') | from_yaml }}"
+    state: present
+    wait: true
+
+- name: Liquibase init job
+  kubernetes.core.k8s:
+    state: present
+    src: ../files/liquibase-job.yaml

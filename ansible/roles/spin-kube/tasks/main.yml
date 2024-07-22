@@ -1,0 +1,43 @@
+---
+- name: Install CRDs for Spin
+  ansible.builtin.shell: |
+    kubectl apply -f https://github.com/spinkube/spin-operator/releases/download/v0.2.0/spin-operator.crds.yaml
+
+- name: Install RuntimeClass for Spin
+  ansible.builtin.shell: |
+    kubectl apply -f https://github.com/spinkube/spin-operator/releases/download/v0.2.0/spin-operator.runtime-class.yaml
+
+- name: Install SpinAppExecutor for Spin
+  ansible.builtin.shell: |
+    kubectl apply -f https://github.com/spinkube/spin-operator/releases/download/v0.2.0/spin-operator.shim-executor.yaml    
+
+- name: Add Kwasm chart repo
+  kubernetes.core.helm_repository:
+    name: kwasm
+    repo_url: "http://kwasm.sh/kwasm-operator/"
+
+- name: Helm install Kwasm
+  ansible.builtin.shell: |
+    helm install kwasm-operator kwasm/kwasm-operator --namespace kwasm --create-namespace --set kwasmOperator.installerImage=ghcr.io/spinkube/containerd-shim-spin/node-installer:v0.14.1 
+
+- name: Provision nodes with Kwasm
+  ansible.builtin.shell: |
+    kubectl annotate node --all kwasm.sh/kwasm-node=true
+
+- name: Create a spin-operator namespace
+  kubernetes.core.k8s:
+    name: spin-operator
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Install Spin operator from Helm chart
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubeconfig }}"
+    name: spin-operator
+    chart_ref: oci://ghcr.io/spinkube/charts/spin-operator
+    chart_version: 0.2.0
+    release_namespace: spin-operator
+    update_repo_cache: true
+    state: present
+    wait: true

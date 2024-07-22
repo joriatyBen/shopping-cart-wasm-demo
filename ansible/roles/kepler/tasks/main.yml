@@ -1,0 +1,23 @@
+---
+- name: Add Helm for Kepler repo
+  kubernetes.core.helm_repository:
+    name: kepler
+    repo_url: https://sustainable-computing-io.github.io/kepler-helm-chart
+
+- name: Install Kepler from Helm chart
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubeconfig }}"
+    name: kepler
+    chart_ref: kepler/kepler
+    chart_version: 0.5.7
+    release_namespace: kepler
+    update_repo_cache: true
+    values: "{{ lookup('template', 'values.yaml.j2') | from_yaml }}"
+    state: present
+    wait: true
+
+- name: Add Kepler Dashboard to Grafana
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    state: present
+    resource_definition: "{{ lookup('file', 'configmaps-grafana-dashboard.yml') | from_yaml }}"

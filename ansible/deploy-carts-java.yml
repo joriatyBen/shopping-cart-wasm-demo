@@ -1,0 +1,16 @@
+---
+- name: deploy carts-java
+  hosts: localhost
+  gather_facts: no
+  become: no
+  vars_files:
+    - "properties/properties.yml"
+  roles:
+    - role: carts/carts-java
+  pre_tasks:
+    - name: create namespace
+      k8s:
+        name: carts-java
+        kind: Namespace
+        state: present
+        kubeconfig: "{{ kubeconfig }}"

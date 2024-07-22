@@ -1,0 +1,16 @@
+---
+- name: deploy kepler
+  hosts: localhost
+  gather_facts: no
+  become: no
+  vars_files:
+    - "properties/properties.yml"
+  roles:
+    - role: kepler
+  pre_tasks:
+    - name: create namespace
+      k8s:
+        name: kepler
+        kind: Namespace
+        state: present
+        kubeconfig: "{{ kubeconfig }}"

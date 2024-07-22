@@ -23,11 +23,20 @@
             toolchain
             pkgs.tinygo
             pkgs.nodePackages.webpack-cli
+            pkgs.python310
+            pkgs.python310Packages.pip
+            pkgs.python310Packages.setuptools
+            pkgs.sops
           ];
         
         shellHook = ''
+          export PIP_PREFIX=$(pwd)/_build/pip_packages
+          export PYTHONPATH="$PIP_PREFIX/${pkgs.python310.sitePackages}:$PYTHONPATH"
+          export PATH="$PIP_PREFIX/bin:$PATH"
+          unset SOURCE_DATE_EPOCH
           exec zsh
           '';
+
         RUST_LOG = "spin=trace";
         WASMTIME_BACKTRACE_DETAILS = "1";
         CPATH="${pkgs.tinygo}/share/tinygo/lib/wasi-libc/sysroot/include";

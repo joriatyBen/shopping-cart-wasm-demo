@@ -1,0 +1,32 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: liquibase-job
+  namespace: postgres
+spec:
+  template:
+    spec:
+      containers:
+      - name: liquibase
+        image: liquibase/liquibase:latest
+        imagePullPolicy: IfNotPresent
+        command: ['sh', '-c', 'liquibase update']
+        env:
+        - name: LIQUIBASE_COMMAND_URL
+          value: "jdbc:postgresql://postgres-postgresql.postgres:5432/products"
+        - name: LIQUIBASE_COMMAND_USERNAME
+          value: "myuser"
+        - name: LIQUIBASE_COMMAND_PASSWORD
+          value: "p05tgr3$"
+        - name: LIQUIBASE_COMMAND_CHANGELOG_FILE
+          value: /changelog/databaseChangeLog.yml
+        volumeMounts:
+        - name: liquibase-changelog
+          mountPath: /liquibase/changelog
+      restartPolicy: Never
+      volumes:
+        - name: liquibase-changelog
+          configMap:
+            name: db-changelog-config
+  backoffLimit: 4

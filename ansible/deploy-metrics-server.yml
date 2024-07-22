@@ -1,0 +1,16 @@
+---
+- name: deploy metrics-server
+  hosts: localhost
+  gather_facts: no
+  become: no
+  vars_files:
+    - "properties/properties.yml"
+  roles:
+    - role: metrics-server
+  pre_tasks:
+    - name: create namespace
+      k8s:
+        name: metrics
+        kind: Namespace
+        state: present
+        kubeconfig: "{{ kubeconfig }}"

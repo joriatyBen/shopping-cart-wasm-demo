@@ -1,0 +1,9 @@
+---
+- name: deploy Spin-Kube
+  hosts: localhost
+  gather_facts: no
+  become: no
+  vars_files:
+    - "properties/properties.yml"
+  roles:
+    - role: spin-kube

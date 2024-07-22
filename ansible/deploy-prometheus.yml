@@ -1,0 +1,16 @@
+---
+- name: deploy prometheus
+  hosts: localhost
+  gather_facts: no
+  become: no
+  vars_files:
+    - "properties/properties.yml"
+  roles:
+    -  role: prometheus
+  pre_tasks:
+    - name: create namespace
+      k8s:
+        name: monitoring
+        kind: Namespace
+        state: present
+        kubeconfig: "{{ kubeconfig }}"
