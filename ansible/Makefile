@@ -23,3 +23,6 @@ spin-kube: prepare
 
 carts-java: prepare
 	ansible-playbook deploy-carts-java.yml
+
+traefik: prepare
+	ansible-playbook deploy-traefik.yml

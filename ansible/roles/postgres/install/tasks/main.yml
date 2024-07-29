@@ -13,4 +13,4 @@
 - name: Liquibase init job
   kubernetes.core.k8s:
     state: present
-    src: ../files/liquibase-job.yaml
+    src: ../files/liquibase-job.yml
