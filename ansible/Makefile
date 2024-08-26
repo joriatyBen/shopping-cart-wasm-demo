@@ -26,3 +26,6 @@ carts-java: prepare
 
 traefik: prepare
 	ansible-playbook deploy-traefik.yml
+
+wasmcloud: prepare
+	ansible-playbook deploy-wasmcloud.yml

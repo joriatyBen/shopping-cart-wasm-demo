@@ -27,6 +27,7 @@
             pkgs.python310Packages.pip
             pkgs.python310Packages.setuptools
             pkgs.sops
+            pkgs.wash-cli
           ];
         
         shellHook = ''

@@ -1,0 +1,37 @@
+---
+- name: Add Helm for Nats repo
+  kubernetes.core.helm_repository:
+    name: nats
+    repo_url: https://nats-io.github.io/k8s/helm/charts/
+
+- name: Install Nats from Helm chart
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubeconfig }}"
+    name: nats
+    chart_ref: nats/nats
+    chart_version: 1.2.1
+    release_namespace: wasmcloud
+    update_repo_cache: true
+    values: "{{ lookup('template', 'nats-values.yml.j2') | from_yaml }}"
+    state: present
+    wait: true
+
+- name: Install Wadm from Helm chart
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubeconfig }}"
+    name: wadm
+    chart_ref: oci://ghcr.io/wasmcloud/charts/wadm
+    chart_version: 0.2.0
+    release_namespace: wasmcloud
+    update_repo_cache: false
+    values: "{{ lookup('template', 'wadm-values.yml.j2') | from_yaml }}"
+    state: present
+    wait: true
+
+- ansible.builtin.import_tasks: deploy-operator.yml
+
+- name: deploy Wasmcloud config
+  k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    state: present
+    resource_definition: "{{ lookup('file', 'wasmcloud-host-config.yml') | from_yaml }}"
