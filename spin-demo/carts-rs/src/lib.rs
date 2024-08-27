@@ -48,7 +48,6 @@ fn handle(req: Request) -> anyhow::Result<Response> {
 }
 
 fn do_handle(req: Request) -> anyhow::Result<Response> {
-    // here
     let pattern_cart = build_pattern("/carts-rs/:cartId");
     let pattern_cart_items = build_pattern("/carts-rs/:cartId/items");
     let pattern_cart_item = build_pattern("/carts-rs/:cartId/items/:itemId");

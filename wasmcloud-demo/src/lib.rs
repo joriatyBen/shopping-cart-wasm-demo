@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::default;
 //use std::ptr::metadata;
 
+use anyhow::Error;
 use serde::{Deserialize, Serialize};
 use serde_json::from_slice;
 use url::Url;
@@ -29,6 +30,24 @@ struct CartItem {
     price: f64,
 }
 
+impl CartItem {
+    fn default() -> CartItem {
+        CartItem{id: 0, quantity: 0, price: 0.0}
+    }
+
+    fn set_id(&mut self, id_value: i32) {
+        self.id = id_value as u32;
+    }
+
+    fn set_quantity(&mut self, quantity_value: i32) {
+        self.quantity = quantity_value as u32;
+    }
+
+    fn set_price(&mut self, price_value: f64) {
+        self.price = price_value
+    }
+}
+
 #[derive(serde::Deserialize, Debug)]
 struct CartItemPatch {
     #[serde(rename = "itemId")]
@@ -47,6 +66,10 @@ const SELECT_FROM_CART_WHERE_ID: &str = r#"
 SELECT * FROM cart.cart_items WHERE cart_id = $1;
 "#;
 
+const SELECT_ATTRS_FROM_CART_WHERE_ID: &str = r#"
+SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1;
+"#;
+
 impl Guest for HttpServer {
     fn handle(request: IncomingRequest, response_out: ResponseOutparam) {
         let pattern_cart = build_pattern("/carts-wcrs/:cartId");
@@ -58,6 +81,7 @@ impl Guest for HttpServer {
             .map(String::from)
             .unwrap_or_else(|| "/".into());
 
+        // the "http://..." string serves as placeholder for the url pattern match
         let mut base_url = "http://127.0.0.1:8080".to_owned();
         base_url.push_str(&path_with_query.as_str());
         
@@ -66,18 +90,30 @@ impl Guest for HttpServer {
         let match_cart = pattern_cart
             .exec(urlpattern::UrlPatternMatchInput::Url(url.clone()))
             .unwrap();
-    
-        
-        //test_response(response_out, match_cart);
-
         if match_cart.is_some() {
           return handle_route_cart(
               match_cart.unwrap().pathname.groups.get("cartId").unwrap(),
               request,
               response_out,
           ).unwrap();
-      }
-
+        }
+      
+        let match_cart_items = pattern_cart_items
+            .exec(urlpattern::UrlPatternMatchInput::Url(url.clone()))
+            .unwrap();
+        if match_cart_items.is_some() {
+            return handle_route_cart_items(
+                match_cart_items
+                    .as_ref()
+                    .unwrap()
+                    .pathname
+                    .groups
+                    .get("cartId")
+                    .unwrap(),
+                request,
+                response_out,
+            ).unwrap();
+        }
     }
 }
 
@@ -106,17 +142,31 @@ fn build_pattern(source: &str) -> UrlPattern {
 
 fn handle_route_cart(cart_id: &str, request: IncomingRequest, response_out: ResponseOutparam) -> Result<(), ()> {
     let cart_id = cart_id.parse::<u32>();
-    let outgoing_response = OutgoingResponse::new(Fields::new());
-    outgoing_response.set_status_code(400).unwrap();
     if !cart_id.is_ok() {
-        return Ok(ResponseOutparam::set(response_out, Ok(outgoing_response)));
+        return Ok(response_bad_request(response_out, cart_id.map_err(anyhow::Error::msg).unwrap_err()));
     }
 
     let cart_id = cart_id.unwrap() as i32;
 
     match request.method() {
         Method::Get => Ok(get_cart(cart_id, response_out)),
-        _ => Ok(ResponseOutparam::set(response_out, Ok(outgoing_response))),
+        _ => Ok(response_not_found(response_out)),
+    }
+}
+
+fn handle_route_cart_items(cart_id: &str, request: IncomingRequest, response_out: ResponseOutparam) -> Result<(), ()> {
+    let cart_id = cart_id.parse::<u32>();
+    if !cart_id.is_ok() {
+        return Ok(response_bad_request(response_out, cart_id.map_err(anyhow::Error::msg).unwrap_err()));
+    }
+    let cart_id = cart_id.unwrap() as i32;
+
+    match request.method() {
+        Method::Get => Ok(get_cart_items(cart_id, response_out)),
+//       Method::Post => post_cart_items(cart_id, req),
+//       Method::Patch => patch_cart_items(cart_id, req),
+//       Method::Delete => delete_cart_items(cart_id),
+        _ => Ok(response_not_found(response_out)),
     }
 }
 
@@ -125,10 +175,69 @@ fn get_cart(cart_id: i32, response_out: ResponseOutparam) -> () {
         SELECT_FROM_CART_WHERE_ID, 
         &[PgValue::Int(cart_id).into()],
     ) {
-        //Ok(rows) => response_json(&GetCartResponse { id: cart_id as u32 }, response_out),
-        Ok(rows) => response_json(&GetCartResponse { id: cart_id as u32 },format!("{rows:#?}"), response_out),
+        Ok(rows) => response_json(Some(&GetCartResponse { id: cart_id as u32 }), None, response_out),
         Err(e) => response_not_found(response_out),
     };
+}
+
+fn get_cart_items(cart_id: i32, response_out: ResponseOutparam) -> () {
+    match query(
+        SELECT_ATTRS_FROM_CART_WHERE_ID, 
+        &[PgValue::Int(cart_id).into()],
+    ) {
+        Ok(rows) => response_json(Some(&cart_item_from_row(&rows)) ,Some(&format!("{rows:#?}")), response_out),
+        Err(e) => response_not_found(response_out),
+    };
+}
+
+fn cart_item_from_row(row: &Vec<Vec<ResultRowEntry>>) -> CartItem {
+    let mut cart_item = CartItem::default();
+
+    for result_row in row.iter() {
+        for entry in result_row.iter() {
+            if entry.column_name == "cart_id" {
+                cart_item.set_id(db_value_as_int(&entry.value).unwrap());
+            } else if entry.column_name == "quantity" {
+                cart_item.set_quantity(db_value_as_int(&entry.value).unwrap());
+            }  else if entry.column_name == "price" {
+                cart_item.set_price(db_value_as_float(&entry.value).unwrap());
+            }
+        }
+    }
+    cart_item
+}
+
+fn db_value_as_int(value: &PgValue) -> Result<i32, Error> {
+    match value {
+        PgValue::Int(v) => Ok(v.clone() as i32),
+        PgValue::Int2(v) => Ok(v.clone() as i32),
+        PgValue::Int4(v) => Ok(v.clone() as i32),
+        PgValue::Int8(v) => Ok(v.clone() as i32),
+        PgValue::BigInt(v) => Ok(v.clone() as i32),
+        _ =>  Result::Err(anyhow::Error::msg("not an int")),
+    }
+}
+
+
+fn db_value_as_float(value: &PgValue) -> Result<f64, Error> {
+    match value { 
+        PgValue::Float4((mantissa, exponent, _sign)) => {
+            let sign = if _sign < &0 { -1.0 } else { 1.0 };
+            let float_value = sign * (*mantissa as f64) * (2.0_f64.powi(*exponent as i32));
+            Ok(float_value)
+        }
+        PgValue::Float8((mantissa, exponent, _sign)) => {
+            let sign = if _sign < &0 { -1.0 } else { 1.0 };
+            let float_value = sign * (*mantissa as f64) * (2.0_f64.powi(*exponent as i32));
+            Ok(float_value)
+        }
+        PgValue::Double((mantissa, exponent, _sign)) => {
+            let sign = if _sign < &0 { -1.0 } else { 1.0 };
+            let float_value = sign * (*mantissa as f64) * (2.0_f64.powi(*exponent as i32));
+            Ok(float_value)
+        }
+        _ => Result::Err(anyhow::Error::msg("not an float")),
+    }
 }
 
 fn create_response<T: Serialize>(
@@ -142,32 +251,35 @@ fn create_response<T: Serialize>(
 
     let response_body = response.body().unwrap();
 
-// Todo: find a better way to handle retrieved database rows
-//   let body_content = if let Some(object) = content {
-//       serde_json::to_string(object).unwrap()
-//   } else if let Some(message) = default_message {
-//       message.to_string()
-//   } else {
-//       String::new()
-//   };
+    let body_content = if let Some(object) = content {
+        serde_json::to_string(object).unwrap()
+    } else if let Some(message) = default_message {
+        message.to_string()
+    } else {
+        String::new()
+    };
     
     response_body
         .write()
         .unwrap()
-        .blocking_write_and_flush(default_message.unwrap().as_bytes())
+        .blocking_write_and_flush(body_content.as_bytes())
         .unwrap();
     
     OutgoingBody::finish(response_body, None).expect("failed to finish response body");
     ResponseOutparam::set(response_out, Ok(response));
 }
 
-fn response_json<T: Serialize>(object: &T, rows: String, response_out: ResponseOutparam) -> () {
-    create_response(response_out, 200, Some(object), Some(&rows));
+fn response_json<T: Serialize>(object: Option<&T>, rows: Option<&str>, response_out: ResponseOutparam) -> () {
+    create_response(response_out, 200, object, rows);
 }
 
 fn response_not_found(response_out: ResponseOutparam) -> () {
     create_response::<()>(response_out, 404, None, Some("not found"));
 }
 
+
+fn response_bad_request(response_out: ResponseOutparam, e: anyhow::Error) -> () {
+    create_response::<()>(response_out, 400, None, Some(&e.to_string()));
+}
 
 export!(HttpServer);
