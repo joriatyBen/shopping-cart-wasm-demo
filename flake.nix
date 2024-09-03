@@ -26,7 +26,6 @@
             pkgs.python310
             pkgs.python310Packages.pip
             pkgs.python310Packages.setuptools
-            pkgs.git-crypt
             pkgs.wash-cli
           ];
         
