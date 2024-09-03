@@ -19,6 +19,9 @@ import (
 type Controller struct {
 	Start int64
 
+	accumulatedTimeDb int64
+	startDb           int64
+
 	cartId int
 	itemId int
 	body   []byte
@@ -42,6 +45,35 @@ type GetCartsResponse struct {
 	Id uint `json:"customerId"`
 }
 
+type connectionWrapper struct {
+	db         *sql.DB
+	controller *Controller
+}
+
+func (c *connectionWrapper) Query(query string, args ...any) (*sql.Rows, error) {
+	c.controller.startDbTimer()
+	rows, err := c.db.Query(query, args...)
+	c.controller.stopDbTimer()
+
+	return rows, err
+}
+
+func (c *connectionWrapper) Exec(query string, args ...any) (sql.Result, error) {
+	c.controller.startDbTimer()
+	result, err := c.db.Exec(query, args...)
+	c.controller.stopDbTimer()
+
+	return result, err
+}
+
+func (c *Controller) startDbTimer() {
+	c.startDb = time.Now().UnixMilli()
+}
+
+func (c *Controller) stopDbTimer() {
+	c.accumulatedTimeDb = c.accumulatedTimeDb + (time.Now().UnixMilli() - c.startDb)
+}
+
 func (c *Controller) HandleGetCarts(w http.ResponseWriter, _ *http.Request, params httprouter.Params) {
 	c.fetchCartId(params)
 	if c.err != nil {
@@ -49,7 +81,7 @@ func (c *Controller) HandleGetCarts(w http.ResponseWriter, _ *http.Request, para
 		return
 	}
 
-	rows, err := connectDb().Query("SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1", int32(c.cartId))
+	rows, err := c.connectDb().Query("SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1", int32(c.cartId))
 	assert(err)
 	defer rows.Close()
 
@@ -67,7 +99,7 @@ func (c *Controller) HandleGetCartsItems(w http.ResponseWriter, _ *http.Request,
 		return
 	}
 
-	rows, err := connectDb().Query("SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1", int32(c.cartId))
+	rows, err := c.connectDb().Query("SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1", int32(c.cartId))
 	assert(err)
 	defer rows.Close()
 
@@ -100,7 +132,7 @@ func (c *Controller) HandlePostCartsItems(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	result, err := connectDb().Exec("INSERT INTO cart.cart_items VALUES($1, $2, $3, $4) ON CONFLICT DO NOTHING;",
+	result, err := c.connectDb().Exec("INSERT INTO cart.cart_items VALUES($1, $2, $3, $4) ON CONFLICT DO NOTHING;",
 		int32(c.cartId),
 		int32(item.Id),
 		int32(item.Quantity),
@@ -145,7 +177,7 @@ func (c *Controller) HandlePatchCartsItems(w http.ResponseWriter, req *http.Requ
 		mutations = append(mutations, fmt.Sprintf("price = $%v", len(parameters)))
 	}
 
-	connection := connectDb()
+	connection := c.connectDb()
 	_, err := connection.Exec(fmt.Sprintf(
 		"UPDATE cart.cart_items SET %s WHERE cart_id = $1 AND item_id = $2", strings.Join(mutations, ", ")),
 		parameters...,
@@ -176,7 +208,7 @@ func (c *Controller) HandleDeleteCartsItems(w http.ResponseWriter, _ *http.Reque
 		return
 	}
 
-	result, err := connectDb().Exec("DELETE FROM cart.cart_items WHERE cart_id = $1", int32(c.cartId))
+	result, err := c.connectDb().Exec("DELETE FROM cart.cart_items WHERE cart_id = $1", int32(c.cartId))
 	assert(err)
 
 	rowsAffected, err := result.RowsAffected()
@@ -197,7 +229,7 @@ func (c *Controller) HandleDeleteCartsItem(w http.ResponseWriter, _ *http.Reques
 		return
 	}
 
-	result, err := connectDb().Exec("DELETE FROM cart.cart_items WHERE cart_id = $1 AND item_id = $2", int32(c.cartId), int32(c.itemId))
+	result, err := c.connectDb().Exec("DELETE FROM cart.cart_items WHERE cart_id = $1 AND item_id = $2", int32(c.cartId), int32(c.itemId))
 	assert(err)
 
 	rowsAffected, err := result.RowsAffected()
@@ -234,14 +266,17 @@ func (c *Controller) fetchBody(req *http.Request) {
 	c.body, c.err = io.ReadAll(req.Body)
 }
 
-func connectDb() *sql.DB {
+func (c *Controller) connectDb() *connectionWrapper {
 	url, err := variables.Get("database_url")
 	if err != nil {
 		panic(err)
 	}
 
-	return pg.Open(url)
+	c.startDbTimer()
+	connection := pg.Open(url)
+	c.startDbTimer()
 
+	return &connectionWrapper{connection, c}
 }
 
 func assert(e error) {
@@ -252,6 +287,7 @@ func assert(e error) {
 
 func (c *Controller) addProcessingTimeHeader(w http.ResponseWriter) {
 	w.Header().Add("X-Processing-Time-Milliseconds", fmt.Sprintf("%v", time.Now().UnixMilli()-c.Start))
+	w.Header().Add("X-Database-Time-Milliseconds", fmt.Sprintf("%v", c.accumulatedTimeDb))
 }
 
 func (c *Controller) responseNotFound(w http.ResponseWriter) {
