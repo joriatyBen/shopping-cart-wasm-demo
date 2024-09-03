@@ -1,25 +1,33 @@
 wit_bindgen::generate!({
-    generate_all
+   generate_all,
+   with: {
+       "wasi:http/types@0.2.0": ::wasi::http::types,
+       "wasi:io/error@0.2.0": ::wasi::io::error,
+       "wasi:io/poll@0.2.0": ::wasi::io::poll,
+       "wasi:io/streams@0.2.0": ::wasi::io::streams,
+   }
 });
 
-use std::collections::HashMap;
-use std::default;
-//use std::ptr::metadata;
+use std::arch::x86_64;
+use std::io::Read;
+use std::result::Result::Ok;
 
-use anyhow::Error;
+use anyhow::{anyhow, bail, ensure, Error};
+
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::from_slice;
+
 use url::Url;
 use urlpattern::{UrlPattern, UrlPatternInit, UrlPatternResult};
 
-use exports::wasi::http::incoming_handler::Guest;
-use wasi::http::types::*;
+use ::wasi::http::types::*;
+use crate::wasi::logging::logging::{log, Level};
 
 use wasmcloud::postgres::query::query;
 use wasmcloud::postgres::types::{PgValue, ResultRow, ResultRowEntry};
 
-//use exports::wasmcloud::examples::invoke::Guest;
-
+use exports::wasi::http::incoming_handler::Guest;
 struct HttpServer;
 
 #[derive(serde::Deserialize, serde::Serialize, Debug)]
@@ -70,6 +78,10 @@ const SELECT_ATTRS_FROM_CART_WHERE_ID: &str = r#"
 SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1;
 "#;
 
+const INSERT_INTO_CART_ITEMS: &str = r#"
+INSERT INTO cart.cart_items VALUES($1, $2, $3, $4);
+"#;
+
 impl Guest for HttpServer {
     fn handle(request: IncomingRequest, response_out: ResponseOutparam) {
         let pattern_cart = build_pattern("/carts-wcrs/:cartId");
@@ -90,6 +102,7 @@ impl Guest for HttpServer {
         let match_cart = pattern_cart
             .exec(urlpattern::UrlPatternMatchInput::Url(url.clone()))
             .unwrap();
+
         if match_cart.is_some() {
           return handle_route_cart(
               match_cart.unwrap().pathname.groups.get("cartId").unwrap(),
@@ -97,7 +110,7 @@ impl Guest for HttpServer {
               response_out,
           ).unwrap();
         }
-      
+     
         let match_cart_items = pattern_cart_items
             .exec(urlpattern::UrlPatternMatchInput::Url(url.clone()))
             .unwrap();
@@ -117,18 +130,29 @@ impl Guest for HttpServer {
     }
 }
 
-fn test_response(response_out: ResponseOutparam, id: i32) {
-    let response = OutgoingResponse::new(Fields::new());
-    response.set_status_code(201).unwrap();
-    let response_body = response.body().unwrap();
+// read_to_end(&mut buf) results in timeout
+fn read_body(request: IncomingRequest) -> Result<Vec<u8>, ()> {
+    let mut buf = vec![];
 
-    response_body
-        .write()
-        .unwrap()
-        .blocking_write_and_flush(format!("{:?}", id).as_bytes())
-        .unwrap();
-    OutgoingBody::finish(response_body, None).expect("failed to finish response body");
-    ResponseOutparam::set(response_out, Ok(response)); 
+    let body = request
+        .consume()
+        .expect("failed to consume request body");
+
+    let mut input_stream = body
+        .stream()
+        .expect("failed to get stream from request body");
+
+    let x = input_stream
+        .read_to_end(&mut buf)
+        .expect("failed");
+    log(    
+        Level::Info,
+        "buf",
+        format!("{x:#?}").as_str(),
+    );
+
+    drop(body);
+    Ok(buf)
 }
 
 fn build_pattern(source: &str) -> UrlPattern {
@@ -136,11 +160,10 @@ fn build_pattern(source: &str) -> UrlPattern {
         pathname: Some(source.to_owned()),
         ..Default::default()
     };
-
     <UrlPattern>::parse(pattern_init).unwrap()
 }
 
-fn handle_route_cart(cart_id: &str, request: IncomingRequest, response_out: ResponseOutparam) -> Result<(), ()> {
+fn handle_route_cart(cart_id: &str, request: IncomingRequest, response_out: ResponseOutparam) -> Result<(), Error> {
     let cart_id = cart_id.parse::<u32>();
     if !cart_id.is_ok() {
         return Ok(response_bad_request(response_out, cart_id.map_err(anyhow::Error::msg).unwrap_err()));
@@ -154,7 +177,7 @@ fn handle_route_cart(cart_id: &str, request: IncomingRequest, response_out: Resp
     }
 }
 
-fn handle_route_cart_items(cart_id: &str, request: IncomingRequest, response_out: ResponseOutparam) -> Result<(), ()> {
+fn handle_route_cart_items(cart_id: &str, request: IncomingRequest, response_out: ResponseOutparam) -> Result<(), Error> {
     let cart_id = cart_id.parse::<u32>();
     if !cart_id.is_ok() {
         return Ok(response_bad_request(response_out, cart_id.map_err(anyhow::Error::msg).unwrap_err()));
@@ -163,7 +186,7 @@ fn handle_route_cart_items(cart_id: &str, request: IncomingRequest, response_out
 
     match request.method() {
         Method::Get => Ok(get_cart_items(cart_id, response_out)),
-//       Method::Post => post_cart_items(cart_id, req),
+        Method::Post => Ok(post_cart_items(cart_id, response_out, request)),
 //       Method::Patch => patch_cart_items(cart_id, req),
 //       Method::Delete => delete_cart_items(cart_id),
         _ => Ok(response_not_found(response_out)),
@@ -190,9 +213,50 @@ fn get_cart_items(cart_id: i32, response_out: ResponseOutparam) -> () {
     };
 }
 
+fn post_cart_items(cart_id: i32, response_out: ResponseOutparam, request: IncomingRequest) -> () {
+    let body_bytes = read_body(request).unwrap();
+    
+    log(
+        Level::Info,
+        "body_bytes",
+        format!("{body_bytes:#?}").as_str(),
+    );
+
+    if body_bytes.is_empty() {
+        return create_response::<()>(response_out, 500, None, Some("request body is empty"));
+
+    }
+
+    let item = parse_json::<CartItem>(&body_bytes);
+    
+    log(
+        Level::Info,
+        "item",
+        format!("{item:#?}").as_str(),
+    );
+    
+    if !item.is_ok() {
+        return create_response::<()>(response_out, 500, None, Some("request body error"));
+    }
+    
+    let item = item.expect("Failed to map incoming request body to CartItem predefined struct");
+   
+    match query(
+        INSERT_INTO_CART_ITEMS,
+        &[
+            PgValue::Int(cart_id as i32),
+            PgValue::Int(item.id as i32),
+            PgValue::Int(item.quantity as i32),
+            PgValue::Float4(decompose_f64_custom(item.price)),
+            ]
+    ) {
+        Ok(rows) => response_json(Some(&item), None, response_out),
+        Err(e) => response_bad_request(response_out, anyhow::Error::msg("duplicate item")),
+    };
+}
+
 fn cart_item_from_row(row: &Vec<Vec<ResultRowEntry>>) -> CartItem {
     let mut cart_item = CartItem::default();
-
     for result_row in row.iter() {
         for entry in result_row.iter() {
             if entry.column_name == "cart_id" {
@@ -280,6 +344,25 @@ fn response_not_found(response_out: ResponseOutparam) -> () {
 
 fn response_bad_request(response_out: ResponseOutparam, e: anyhow::Error) -> () {
     create_response::<()>(response_out, 400, None, Some(&e.to_string()));
+}
+
+fn parse_json<T: DeserializeOwned>(json: &[u8]) -> anyhow::Result<T> {
+    let json = std::str::from_utf8(json)?;
+
+    serde_json::from_str(json).map_err(anyhow::Error::msg)
+}
+
+fn decompose_f64_custom(value: f64) -> (u64, i16, i8) {
+    let bits = value.to_bits();
+    let sign = if (bits >> 63) & 1 == 1 { 1 } else { 0 };
+    let exponent = ((bits >> 52) & 0x7FF) as i16 - 1023;
+    let mantissa = if exponent == -1023 {
+        bits & 0xFFFFFFFFFFFFF
+    } else {
+        bits & 0xFFFFFFFFFFFFF | 0x10000000000000
+    };
+    
+    (mantissa, exponent, sign)
 }
 
 export!(HttpServer);
