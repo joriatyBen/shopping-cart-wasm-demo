@@ -1,0 +1,16 @@
+---
+- name: deploy traefik
+  hosts: localhost
+  gather_facts: no
+  become: no
+  vars_files:
+    - "properties/properties.yml"
+  roles:
+    - role: traefik
+  pre_tasks:
+    - name: create namespace
+      k8s:
+        name: traefik
+        kind: Namespace
+        state: present
+        kubeconfig: "{{ kubeconfig }}"

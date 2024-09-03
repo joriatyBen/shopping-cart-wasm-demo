@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-resource-group: wasmdemo
+    service.beta.kubernetes.io/azure-pip-name: wasmdemoip
+    service.beta.kubernetes.io/azure-dns-label-name: wasmdemok8scart
+  name: azure-load-balancer
+  namespace: carts-java
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+  selector:
+    app: cart-api

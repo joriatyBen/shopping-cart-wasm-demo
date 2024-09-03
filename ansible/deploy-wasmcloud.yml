@@ -1,0 +1,23 @@
+---
+- name: deploy wasmcloud
+  hosts: localhost
+  gather_facts: no
+  become: no
+  vars_files:
+    - "properties/properties.yml"
+  roles:
+    - role: wasmcloud
+  pre_tasks:
+    - name: create namespace
+      k8s:
+        name: wasmcloud
+        kind: Namespace
+        state: present
+        kubeconfig: "{{ kubeconfig }}"
+    - name: create namespace
+      k8s:
+        name: wasmcloud-operator
+        kind: Namespace
+        state: present
+        kubeconfig: "{{ kubeconfig }}"
+

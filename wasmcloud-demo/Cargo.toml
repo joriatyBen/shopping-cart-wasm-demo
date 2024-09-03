@@ -1,0 +1,18 @@
+[package]
+name = "http-hello-world"
+edition = "2021"
+version = "0.1.0"
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+anyhow = "1"
+serde = "1.0"
+serde_json = "1.0"
+url = "2.5.2"
+urlpattern = "^0.2.0"
+wit-bindgen = "0.30"
+wasi = "=0.13.1"

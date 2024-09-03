@@ -1,0 +1,23 @@
+---
+apiVersion: k8s.wasmcloud.dev/v1alpha1
+kind: WasmCloudHostConfig
+metadata:
+    name: my-wasmcloud-cluster
+    namespace: wasmcloud
+spec:
+    # The number of wasmCloud host pods to run
+    hostReplicas: 2
+    # The lattice to connect the hosts to
+    lattice: default
+    # Additional labels to apply to the host other than the defaults set in the operator
+    hostLabels:
+    some-label: value
+    # The address to connect to nats
+    natsAddress: nats://nats.wasmcloud.svc.cluster.local
+    # Which wasmCloud version to use
+    version: 1.0.4
+    # Enable the following to run the wasmCloud hosts as a DaemonSet
+    #daemonset: true
+    #The name of the image pull secret to use with wasmCloud hosts so that they
+    # can authenticate to a private registry to pull components.
+    # registryCredentialsSecret: my-registry-secret

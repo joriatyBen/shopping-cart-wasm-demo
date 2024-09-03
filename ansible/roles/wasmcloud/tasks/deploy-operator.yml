@@ -1,0 +1,4 @@
+---
+- name: deploy Operator
+  shell: |
+    kubectl apply -k roles/wasmcloud/files/operator
