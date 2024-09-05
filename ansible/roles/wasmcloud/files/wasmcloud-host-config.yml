@@ -2,7 +2,7 @@
 apiVersion: k8s.wasmcloud.dev/v1alpha1
 kind: WasmCloudHostConfig
 metadata:
-    name: my-wasmcloud-cluster
+    name: wasmcloud-host
     namespace: wasmcloud
 spec:
     # The number of wasmCloud host pods to run
@@ -20,4 +20,5 @@ spec:
     #daemonset: true
     #The name of the image pull secret to use with wasmCloud hosts so that they
     # can authenticate to a private registry to pull components.
-    # registryCredentialsSecret: my-registry-secret
+    registryCredentialsSecret: ghcr
+    configServiceEnabled: true
