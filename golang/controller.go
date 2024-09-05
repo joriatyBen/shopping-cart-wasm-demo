@@ -11,12 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fermyon/spin/sdk/go/v2/pg"
-	"github.com/fermyon/spin/sdk/go/v2/variables"
 	"github.com/julienschmidt/httprouter"
+	_ "github.com/lib/pq"
 )
 
 type Controller struct {
+	Cfg Config
+
 	Start int64
 
 	accumulatedTimeDb int64
@@ -66,6 +67,10 @@ func (c *connectionWrapper) Exec(query string, args ...any) (sql.Result, error) 
 	return result, err
 }
 
+func (c *connectionWrapper) Close() {
+	c.db.Close()
+}
+
 func (c *Controller) startDbTimer() {
 	c.startDb = time.Now().UnixMilli()
 }
@@ -81,7 +86,10 @@ func (c *Controller) HandleGetCarts(w http.ResponseWriter, _ *http.Request, para
 		return
 	}
 
-	rows, err := c.connectDb().Query("SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1", int32(c.cartId))
+	conn := c.connectDb()
+	defer conn.Close()
+
+	rows, err := conn.Query("SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1", int32(c.cartId))
 	assert(err)
 	defer rows.Close()
 
@@ -99,7 +107,10 @@ func (c *Controller) HandleGetCartsItems(w http.ResponseWriter, _ *http.Request,
 		return
 	}
 
-	rows, err := c.connectDb().Query("SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1", int32(c.cartId))
+	conn := c.connectDb()
+	defer conn.Close()
+
+	rows, err := conn.Query("SELECT item_id, quantity, price FROM cart.cart_items WHERE cart_id = $1", int32(c.cartId))
 	assert(err)
 	defer rows.Close()
 
@@ -132,7 +143,10 @@ func (c *Controller) HandlePostCartsItems(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	result, err := c.connectDb().Exec("INSERT INTO cart.cart_items VALUES($1, $2, $3, $4) ON CONFLICT DO NOTHING;",
+	conn := c.connectDb()
+	defer conn.Close()
+
+	result, err := conn.Exec("INSERT INTO cart.cart_items VALUES($1, $2, $3, $4) ON CONFLICT DO NOTHING;",
 		int32(c.cartId),
 		int32(item.Id),
 		int32(item.Quantity),
@@ -178,6 +192,8 @@ func (c *Controller) HandlePatchCartsItems(w http.ResponseWriter, req *http.Requ
 	}
 
 	connection := c.connectDb()
+	defer connection.Close()
+
 	_, err := connection.Exec(fmt.Sprintf(
 		"UPDATE cart.cart_items SET %s WHERE cart_id = $1 AND item_id = $2", strings.Join(mutations, ", ")),
 		parameters...,
@@ -267,14 +283,16 @@ func (c *Controller) fetchBody(req *http.Request) {
 }
 
 func (c *Controller) connectDb() *connectionWrapper {
-	url, err := variables.Get("database_url")
+	connectionString := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",
+		c.Cfg.Host, c.Cfg.User, c.Cfg.Password, c.Cfg.Database)
+
+	c.startDbTimer()
+	connection, err := sql.Open("postgres", connectionString)
+	c.stopDbTimer()
+
 	if err != nil {
 		panic(err)
 	}
-
-	c.startDbTimer()
-	connection := pg.Open(url)
-	c.stopDbTimer()
 
 	return &connectionWrapper{connection, c}
 }
