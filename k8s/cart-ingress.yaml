@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+  creationTimestamp: "2024-07-26T14:39:44Z"
+  name: cart-ingress
+spec:
+  ingressClassName: webapprouting.kubernetes.azure.com
+  rules:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: cart-api
+            port:
+              number: 80
+        path: /spin/(.*)
+        pathType: ImplementationSpecific
