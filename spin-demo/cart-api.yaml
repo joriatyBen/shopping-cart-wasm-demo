@@ -3,9 +3,7 @@ kind: SpinApp
 metadata:
   name: cart-api
 spec:
-  image: "ghcr.io/joriatyben/cart-api:0.0.4"
-  imagePullSecrets:
-    - name: ghcr
+  image: "ttl.sh/f7cef51e-8400-4123-8f57-80448c761958:24h"
   executor: containerd-shim-spin
   replicas: 2
   variables:
