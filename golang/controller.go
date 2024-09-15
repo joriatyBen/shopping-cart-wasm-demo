@@ -15,6 +15,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
+var globalConnection *sql.DB
+
 type Controller struct {
 	Cfg Config
 
@@ -68,7 +70,9 @@ func (c *connectionWrapper) Exec(query string, args ...any) (sql.Result, error) 
 }
 
 func (c *connectionWrapper) Close() {
-	c.db.Close()
+	if c.db != globalConnection {
+		c.db.Close()
+	}
 }
 
 func (c *Controller) startDbTimer() {
@@ -283,6 +287,10 @@ func (c *Controller) fetchBody(req *http.Request) {
 }
 
 func (c *Controller) connectDb() *connectionWrapper {
+	if c.Cfg.UsePool && globalConnection != nil {
+		return &connectionWrapper{globalConnection, c}
+	}
+
 	connectionString := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable %s",
 		c.Cfg.Host, c.Cfg.User, c.Cfg.Password, c.Cfg.Database, c.Cfg.ConnectionExtra)
 
@@ -292,6 +300,11 @@ func (c *Controller) connectDb() *connectionWrapper {
 
 	if err != nil {
 		panic(err)
+	}
+
+	if c.Cfg.UsePool {
+		connection.SetMaxIdleConns(15)
+		globalConnection = connection
 	}
 
 	return &connectionWrapper{connection, c}

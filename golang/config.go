@@ -9,6 +9,7 @@ type Config struct {
 	Database        string
 	Listen          string
 	ConnectionExtra string
+	UsePool         bool
 }
 
 func ParseConfig() Config {
@@ -20,6 +21,7 @@ func ParseConfig() Config {
 	flag.StringVar(&config.Database, "d", "products", "Postgres database")
 	flag.StringVar(&config.Listen, "l", "localhost:3005", "HTTP listen address")
 	flag.StringVar(&config.ConnectionExtra, "e", "", "Extra postgres connection parameters")
+	flag.BoolVar(&config.UsePool, "c", false, "Use connection pool")
 	flag.Parse()
 
 	return config

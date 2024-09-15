@@ -21,10 +21,10 @@ spec:
     spec:
       containers:
       - name: carts-go-native
-        image: ttl.sh/62d82f1c-4dab-4602-bf9b-10ffe62803a4:24h
+        image: ttl.sh/68d45d0a-b610-46dc-8b9c-1907aef2a0b4:24h
         ports:
         - containerPort: 8080
-        command: ["/shoppingcart", "-h", "pgbouncer.postgres.svc.cluster.local", "-l", "0.0.0.0:8080", "-e", "binary_parameters=yes"]
+        command: ["/shoppingcart", "-h", "pgbouncer.postgres.svc.cluster.local", "-l", "0.0.0.0:8080", "-e", "binary_parameters=yes", "-c"]
 
 ---
 
