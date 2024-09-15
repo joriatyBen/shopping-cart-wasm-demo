@@ -3,11 +3,12 @@ package main
 import "flag"
 
 type Config struct {
-	Host     string
-	User     string
-	Password string
-	Database string
-	Listen   string
+	Host            string
+	User            string
+	Password        string
+	Database        string
+	Listen          string
+	ConnectionExtra string
 }
 
 func ParseConfig() Config {
@@ -18,6 +19,7 @@ func ParseConfig() Config {
 	flag.StringVar(&config.Password, "p", "p05tgr3$", "Postgres password")
 	flag.StringVar(&config.Database, "d", "products", "Postgres database")
 	flag.StringVar(&config.Listen, "l", "localhost:3005", "HTTP listen address")
+	flag.StringVar(&config.ConnectionExtra, "e", "", "Extra postgres connection parameters")
 	flag.Parse()
 
 	return config

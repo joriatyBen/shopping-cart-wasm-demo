@@ -13,6 +13,7 @@ database_user = { default = "myuser" }
 database_password = { default = "p05tgr3$" }
 database_name = { default = "products" }
 database_port = { default = "5432" }
+database_connection_extra = { default = "" }
 
 # --------------order demo
 
@@ -44,7 +45,7 @@ source = "carts-rs/target/wasm32-wasi/release/carts_rs.wasm"
 allowed_outbound_hosts = ["postgres://{{ database_host }}:{{ database_port }}"]
 
 [component.carts-rs.variables]
-database_url = "host={{ database_host }} user={{ database_user }} password={{ database_password }} dbname={{ database_name }}"
+database_url = "host={{ database_host }} user={{ database_user }} password={{ database_password }} dbname={{ database_name }} {{ database_connection_extra }}"
 
 [component.carts-rs.build]
 command = "cargo build --target wasm32-wasi --release"
@@ -65,7 +66,7 @@ environment = { DB_URL = "host=postgres-postgresql.postgres user=myuser password
 allowed_outbound_hosts = ["postgres://{{ database_host }}:{{ database_port }}"]
 
 [component.carts-go.variables]
-database_url = "host={{ database_host }} user={{ database_user }} password={{ database_password }} dbname={{ database_name }}"
+database_url = "host={{ database_host }} user={{ database_user }} password={{ database_password }} dbname={{ database_name }} {{ database_connection_extra }}"
 
 [component.carts-go.build]
 command = "tinygo build -target=wasi -gc=leaking -no-debug -o main.wasm ."
@@ -84,7 +85,7 @@ source = "carts-ts/target/carts-ts.wasm"
 allowed_outbound_hosts = ["postgres://{{ database_host }}:{{ database_port }}"]
 
 [component.carts-ts.variables]
-database_url = "host={{ database_host }} user={{ database_user }} password={{ database_password }} dbname={{ database_name }}"
+database_url = "host={{ database_host }} user={{ database_user }} password={{ database_password }} dbname={{ database_name }} {{ database_connection_extra }}"
 
 [component.carts-ts.build]
 command = "npm install && npm run build"

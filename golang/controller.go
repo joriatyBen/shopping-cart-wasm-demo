@@ -283,8 +283,8 @@ func (c *Controller) fetchBody(req *http.Request) {
 }
 
 func (c *Controller) connectDb() *connectionWrapper {
-	connectionString := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",
-		c.Cfg.Host, c.Cfg.User, c.Cfg.Password, c.Cfg.Database)
+	connectionString := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable %s",
+		c.Cfg.Host, c.Cfg.User, c.Cfg.Password, c.Cfg.Database, c.Cfg.ConnectionExtra)
 
 	c.startDbTimer()
 	connection, err := sql.Open("postgres", connectionString)

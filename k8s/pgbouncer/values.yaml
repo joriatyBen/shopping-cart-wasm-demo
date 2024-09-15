@@ -1,0 +1,17 @@
+## PGBouncer Settings
+##
+config:
+  adminUser: admin
+  adminPassword: Nea9mie1
+  databases:
+    products:
+      host: postgres-postgresql.postgres.svc.cluster.local
+      port: 5432
+  pgbouncer:
+    auth_type: md5
+    pool_mode: transaction
+    max_client_conn: 1024
+    default_pool_size: 20
+    ignore_startup_parameters: extra_float_digits
+  userlist:
+    myuser: SCRAM-SHA-256$4096:eNHOJvvkGZsXSXgjC0Y83Q==$1PKvfbSHWNSVXjs8yJizUDufYiQd5yxrhBRt8PKg90Q=:EtczCtW/CJoFwZAZpKHLvUeXNdiRFhubtskC9GUrUeI=

@@ -3,12 +3,12 @@ kind: SpinApp
 metadata:
   name: cart-api
 spec:
-  image: "ttl.sh/f7cef51e-8400-4123-8f57-80448c761958:24h"
+  image: "ttl.sh/39457471-83e2-4155-88c7-d8bbcc7019c5:24h"
   executor: containerd-shim-spin
   replicas: 2
   variables:
     - name: database_host
-      value: postgres-postgresql.postgres.svc.cluster.local
+      value: pgbouncer.postgres.svc.cluster.local
     - name: database_user
       value: myuser
     - name: database_password
