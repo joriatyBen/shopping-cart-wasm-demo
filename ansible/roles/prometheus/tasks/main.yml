@@ -9,7 +9,7 @@
     kubeconfig: "{{ kubeconfig }}"
     name: prometheus
     chart_ref: prometheus-community/kube-prometheus-stack
-    chart_version: 61.3.0
+    chart_version: 62.7.0
     release_namespace: monitoring
     update_repo_cache: true
     values: "{{ lookup('template', 'values.yml.j2') | from_yaml }}"

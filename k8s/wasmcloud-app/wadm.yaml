@@ -5,6 +5,8 @@ metadata:
   namespace: wasmcloud
   annotations:
     version: v0.0.1
+  labels:
+    app: rust-hello-world
 spec:
   components:
     - name: http-component

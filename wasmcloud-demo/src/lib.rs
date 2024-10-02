@@ -142,14 +142,9 @@ fn read_body(request: IncomingRequest) -> Result<Vec<u8>, ()> {
         .stream()
         .expect("failed to get stream from request body");
 
-    let x = input_stream
+    input_stream
         .read_to_end(&mut buf)
         .expect("failed");
-    log(    
-        Level::Info,
-        "buf",
-        format!("{x:#?}").as_str(),
-    );
 
     drop(body);
     Ok(buf)

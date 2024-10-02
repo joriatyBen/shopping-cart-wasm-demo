@@ -1,5 +1,6 @@
 #### Deploy wasmcloud app
 1. run `make wasmcloud` in ../../ansible
+2. `k create secret -n wasmcloud docker-registry ghcr  --docker-server=ghcr.io --docker-username=<gh-user> --docker-password=<gh-pw> --docker-email=<gh-user-email>`
 2. `k port-forward -n wasmcloud svc/nats 4222:4222` 
 3. `wash config put default-postgres \
     POSTGRES_HOST=postgres-postgresql.postgres \

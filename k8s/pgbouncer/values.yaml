@@ -10,8 +10,12 @@ config:
   pgbouncer:
     auth_type: md5
     pool_mode: transaction
-    max_client_conn: 1024
-    default_pool_size: 20
+    max_client_conn: 8192
+    default_pool_size: 200
+    log_connections: 1
+    log_disconnections: 1
+    log_pooler_errors: 1
+    application_name_add_host: 1
     ignore_startup_parameters: extra_float_digits
   userlist:
     myuser: SCRAM-SHA-256$4096:eNHOJvvkGZsXSXgjC0Y83Q==$1PKvfbSHWNSVXjs8yJizUDufYiQd5yxrhBRt8PKg90Q=:EtczCtW/CJoFwZAZpKHLvUeXNdiRFhubtskC9GUrUeI=

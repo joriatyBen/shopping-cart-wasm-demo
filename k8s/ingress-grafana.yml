@@ -1,0 +1,28 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/from-to-www-redirect: "true"
+  name: grafana-ingress
+  namespace: monitoring
+spec:
+  ingressClassName: webapprouting.kubernetes.azure.com
+  rules:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: prometheus-grafana
+            port:
+              number: 80
+        path: /grafana
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: prometheus-grafana
+            port:
+              number: 80
+        path: /(.*)
+        pathType: ImplementationSpecific

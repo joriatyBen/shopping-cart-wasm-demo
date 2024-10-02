@@ -9,7 +9,7 @@
     kubeconfig: "{{ kubeconfig }}"
     name: kepler
     chart_ref: kepler/kepler
-    chart_version: 0.5.7
+    chart_version: 0.5.9
     release_namespace: kepler
     update_repo_cache: true
     values: "{{ lookup('template', 'values.yaml.j2') | from_yaml }}"

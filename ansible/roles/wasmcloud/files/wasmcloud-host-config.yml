@@ -11,7 +11,7 @@ spec:
     lattice: default
     # Additional labels to apply to the host other than the defaults set in the operator
     hostLabels:
-    some-label: value
+        app: helloworld
     # The address to connect to nats
     natsAddress: nats://nats.wasmcloud.svc.cluster.local
     # Which wasmCloud version to use
